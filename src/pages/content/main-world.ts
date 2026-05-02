@@ -161,6 +161,26 @@ function proxyRequest(
   });
 }
 
+// ─── Proxy Blacklist ─────────────────────────────────────────────────────────
+
+/**
+ * Domains (and their subdomains) whose requests should bypass the proxy
+ * and use the native fetch / XHR directly.
+ */
+const PROXY_BLACKLIST = ["koodoreader.com", "koodoreader.cn", "960960.xyz"];
+
+/** Check whether a URL matches a blacklisted domain or any of its subdomains. */
+function isBlacklisted(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return PROXY_BLACKLIST.some(
+      (domain) => hostname === domain || hostname.endsWith("." + domain),
+    );
+  } catch {
+    return false;
+  }
+}
+
 // ─── Fetch Interceptor ───────────────────────────────────────────────────────
 
 const _originalFetch = window.fetch.bind(window);
@@ -179,6 +199,9 @@ window.fetch = async function (
         : (input as Request).url;
 
   if (!url.startsWith("http")) return _originalFetch(...args);
+
+  // Bypass proxy for blacklisted domains
+  if (isBlacklisted(url)) return _originalFetch(...args);
 
   // Serialise request headers
   const reqHeaders: Record<string, string> = {};
@@ -265,6 +288,12 @@ class ProxiedXMLHttpRequest extends _OriginalXHR {
     const url = this._url;
 
     if (!url.startsWith("http")) {
+      super.send(body);
+      return;
+    }
+
+    // Bypass proxy for blacklisted domains
+    if (isBlacklisted(url)) {
       super.send(body);
       return;
     }
