@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "name in manifest.json",
-  "description": "description in manifest.json",
+  "name": "Koodo Reader",
+  "description": "This is a web extension that enhances the reading experience on the web version of Koodo Reader.",
   "options_ui": {
     "page": "src/pages/options/index.html"
   },
