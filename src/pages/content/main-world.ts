@@ -206,6 +206,13 @@ window.fetch = async function (
       body,
       formEntries,
     });
+    if (res.data === "") {
+      return new Response(null, {
+        status: res.status,
+        statusText: res.statusText ?? "",
+        headers: res.headers,
+      });
+    }
 
     // Decode Base64 response body back to binary
     const bytes = base64ToUint8Array(res.data);
