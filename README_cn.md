@@ -1,4 +1,4 @@
-[English Documentation](README.md)
+[English Documentation](./README.md)
 
 <div align="center">
 <img src="public/icon-128.png" alt="logo"/>
