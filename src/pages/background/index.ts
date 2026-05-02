@@ -23,7 +23,9 @@ async function injectContentScripts(tabId: number): Promise<void> {
   const manifest = chrome.runtime.getManifest();
   const csList = manifest.content_scripts ?? [];
 
-  const mainWorldCS = csList.find((cs) => (cs as { world?: string }).world === "MAIN");
+  const mainWorldCS = csList.find(
+    (cs) => (cs as { world?: string }).world === "MAIN",
+  );
   const isolatedCS = csList.find((cs) => !(cs as { world?: string }).world);
 
   const injectMain = mainWorldCS?.js ?? [];
@@ -225,6 +227,37 @@ async function buildRequestBody(
 }
 
 /**
+ * Strip embedded credentials (user:pass) from a URL and return them
+ * as a Basic Authorization header value so that the Fetch API does not
+ * throw a TypeError (credentials in URLs are forbidden by the spec).
+ */
+function extractCredentials(rawUrl: string): {
+  cleanUrl: string;
+  authHeader: string | null;
+} {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return { cleanUrl: rawUrl, authHeader: null };
+  }
+
+  const { username, password } = parsed;
+  if (!username && !password) {
+    return { cleanUrl: rawUrl, authHeader: null };
+  }
+
+  // Build the Basic auth header value
+  const credentials = `${decodeURIComponent(username)}:${decodeURIComponent(password)}`;
+  const authHeader = "Basic " + btoa(credentials);
+
+  // Remove credentials from the URL
+  parsed.username = "";
+  parsed.password = "";
+  return { cleanUrl: parsed.toString(), authHeader };
+}
+
+/**
  * Execute the proxied request and return a serialisable result.
  * The response body is always returned as Base64 so that binary files
  * (images, PDFs, ZIPs …) survive the JSON message channel intact.
@@ -232,14 +265,22 @@ async function buildRequestBody(
 async function executeProxy(msg: ProxyMessage) {
   const method =
     msg.method ?? (msg.options as RequestInit | undefined)?.method ?? "GET";
-  const headers: Record<string, string> =
-    msg.headers ??
-    (msg.options?.headers as Record<string, string> | undefined) ??
-    {};
+  const headers: Record<string, string> = {
+    ...(msg.options?.headers as Record<string, string> | undefined),
+    ...msg.headers,
+  };
+
+  // The Fetch API forbids credentials embedded in URLs (throws TypeError).
+  // Extract them and convert to an Authorization header so the service
+  // worker can proxy WebDAV requests that use user:pass@host style URLs.
+  const { cleanUrl, authHeader } = extractCredentials(msg.url);
+  if (authHeader && !headers["authorization"] && !headers["Authorization"]) {
+    headers["Authorization"] = authHeader;
+  }
 
   const body = await buildRequestBody(msg);
 
-  const res = await fetch(msg.url, {
+  const res = await fetch(cleanUrl, {
     method,
     headers,
     body,

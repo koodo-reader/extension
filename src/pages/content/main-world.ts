@@ -213,8 +213,10 @@ window.fetch = async function (
       status: res.status,
       headers: res.headers,
     });
-  } catch {
-    return _originalFetch(...args);
+  } catch (err) {
+    // Do NOT fall back to the native fetch – that would send the request
+    // from the page origin and trigger a CORS block.  Surface the error.
+    throw err;
   }
 };
 
@@ -340,8 +342,30 @@ class ProxiedXMLHttpRequest extends _OriginalXHR {
         if (typeof this.onload === "function")
           this.onload(new ProgressEvent("load"));
       })
-      .catch(() => {
-        super.send(body);
+      .catch((err) => {
+        // Do NOT fall back to super.send() – that fires a real XHR from the
+        // page origin and causes a CORS preflight failure.  Instead, dispatch
+        // an error event so the caller receives a proper network error.
+        Object.defineProperty(this, "readyState", {
+          get: () => 4,
+          configurable: true,
+        });
+        Object.defineProperty(this, "status", {
+          get: () => 0,
+          configurable: true,
+        });
+        Object.defineProperty(this, "statusText", {
+          get: () => "",
+          configurable: true,
+        });
+        this.dispatchEvent(new Event("readystatechange"));
+        this.dispatchEvent(new ProgressEvent("error"));
+        this.dispatchEvent(new ProgressEvent("loadend"));
+        if (typeof this.onreadystatechange === "function")
+          this.onreadystatechange(new Event("readystatechange"));
+        if (typeof this.onerror === "function")
+          this.onerror(new ProgressEvent("error"));
+        console.error("[koodo] XHR proxy failed, request not retried:", err);
       });
   }
 }

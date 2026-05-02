@@ -1,4 +1,4 @@
-[中文文档](https://github.com/koodo-reader/extension/blob/master/README_cn_.md)
+[中文文档](https://github.com/koodo-reader/extension/blob/main/README_cn_.md)
 
 <div align="center">
 <img src="public/icon-128.png" alt="logo"/>
@@ -97,5 +97,3 @@ This program is free software: you can redistribute it and/or modify it under th
 This program is distributed in the hope that it will be useful, but **WITHOUT ANY WARRANTY**; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
-
----

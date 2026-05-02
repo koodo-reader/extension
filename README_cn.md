@@ -1,4 +1,4 @@
-[English Documentation](https://github.com/koodo-reader/extension/blob/master/README.md)
+[English Documentation](https://github.com/koodo-reader/extension/blob/main/README.md)
 
 <div align="center">
 <img src="public/icon-128.png" alt="logo"/>
@@ -97,5 +97,3 @@ Copyright (C) 2024-2025 Koodo Reader 代理扩展 贡献者
 本程序的分发是希望它有用，但**没有任何担保**；甚至没有适销性或特定用途的隐含担保。详情请参阅 GNU Affero 通用公共许可证。
 
 您应该已随本程序收到一份 GNU Affero 通用公共许可证副本。如果没有，请参阅 <https://www.gnu.org/licenses/>。
-
----
