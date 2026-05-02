@@ -28,7 +28,7 @@
       ]
     },
     "condition": {
-      "urlFilter": "*",
+      "initiatorDomains": ["localhost", "web.koodoreader.com"],
       "resourceTypes": [
         "xmlhttprequest",
         "sub_frame",

@@ -11,9 +11,6 @@
       "32": "icon-32.png"
     }
   },
-  "chrome_url_overrides": {
-    "newtab": "src/pages/newtab/index.html"
-  },
   "icons": {
     "128": "icon-128.png"
   },
@@ -21,7 +18,8 @@
     "activeTab",
     "declarativeNetRequest",
     "declarativeNetRequestWithHostAccess",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": ["<all_urls>"],
   "declarative_net_request": {
@@ -35,19 +33,18 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*", "<all_urls>"],
+      "matches": ["http://localhost:3000/*", "https://web.koodoreader.com/*"],
       "run_at": "document_start",
       "world": "MAIN",
       "js": ["src/pages/content/main-world.ts"]
     },
     {
-      "matches": ["http://*/*", "https://*/*", "<all_urls>"],
+      "matches": ["http://localhost:3000/*", "https://web.koodoreader.com/*"],
       "run_at": "document_start",
       "js": ["src/pages/content/index.tsx"],
       "css": ["contentStyle.css"]
     }
   ],
-  "devtools_page": "src/pages/devtools/index.html",
   "web_accessible_resources": [
     {
       "resources": ["contentStyle.css", "icon-128.png", "icon-32.png"],

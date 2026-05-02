@@ -1,5 +1,143 @@
 console.log("background script loaded");
 
+// ─── Site Management ─────────────────────────────────────────────────────────
+
+const AUTO_SITES = ["localhost:3000", "web.koodoreader.com"];
+
+/** Get the set of manually enabled sites from storage. */
+async function getEnabledSites(): Promise<string[]> {
+  const { enabledSites } = await chrome.storage.sync.get("enabledSites");
+  return enabledSites ?? [];
+}
+
+/** Check if a hostname is auto-enabled. */
+function isAutoSite(hostname: string): boolean {
+  return AUTO_SITES.some(
+    (site) => hostname === site || hostname.endsWith("." + site),
+  );
+}
+
+/** Inject the extension content scripts into a tab. */
+async function injectContentScripts(tabId: number): Promise<void> {
+  // Read content script paths from the built manifest
+  const manifest = chrome.runtime.getManifest();
+  const csList = manifest.content_scripts ?? [];
+
+  const mainWorldCS = csList.find((cs) => (cs as { world?: string }).world === "MAIN");
+  const isolatedCS = csList.find((cs) => !(cs as { world?: string }).world);
+
+  const injectMain = mainWorldCS?.js ?? [];
+  const injectBridge = isolatedCS?.js ?? [];
+  const injectCSS = isolatedCS?.css ?? [];
+
+  try {
+    if (injectMain.length > 0) {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        world: "MAIN",
+        files: injectMain,
+      });
+    }
+    if (injectBridge.length > 0) {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: injectBridge,
+      });
+    }
+    for (const css of injectCSS) {
+      await chrome.scripting.insertCSS({
+        target: { tabId },
+        files: [css],
+      });
+    }
+    console.log(`[koodo] Injected content scripts into tab ${tabId}`);
+  } catch (err) {
+    console.error("[koodo] Injection failed:", err);
+  }
+}
+
+// ─── Auto-reinjection on navigation ──────────────────────────────────────────
+
+/** Extract hostname (host:port) from a URL string. */
+function extractHostname(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).host;
+  } catch {
+    return null;
+  }
+}
+
+// Re-inject content scripts when a tab navigates to a manually-enabled site
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status !== "loading" || !tab.url) return;
+  const hostname = extractHostname(tab.url);
+  if (!hostname || isAutoSite(hostname)) return; // auto sites inject via manifest
+
+  getEnabledSites().then((sites) => {
+    if (sites.includes(hostname)) {
+      injectContentScripts(tabId);
+    }
+  });
+});
+
+// ─── Message Handlers ────────────────────────────────────────────────────────
+
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+  // Site enable/disable from popup
+  if (request.type === "ENABLE_SITE") {
+    getEnabledSites()
+      .then(async (sites) => {
+        if (!sites.includes(request.hostname)) {
+          sites.push(request.hostname);
+          await chrome.storage.sync.set({ enabledSites: sites });
+        }
+        // Inject into the current tab
+        await injectContentScripts(request.tabId);
+        sendResponse({ success: true, enabled: true });
+      })
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true; // keep channel open
+  }
+
+  if (request.type === "DISABLE_SITE") {
+    getEnabledSites()
+      .then(async (sites) => {
+        const filtered = sites.filter((s) => s !== request.hostname);
+        await chrome.storage.sync.set({ enabledSites: filtered });
+        sendResponse({ success: true, enabled: false });
+      })
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
+  if (request.type === "GET_SITE_STATUS") {
+    const autoSite = isAutoSite(request.hostname);
+    getEnabledSites()
+      .then((sites) => {
+        const manuallyEnabled = sites.includes(request.hostname);
+        sendResponse({
+          success: true,
+          autoSite,
+          manuallyEnabled,
+          enabled: autoSite || manuallyEnabled,
+        });
+      })
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
+  // Proxy fetch/XHR (existing logic)
+  if (request.type !== "PROXY_FETCH" && request.type !== "PROXY_XHR") return;
+
+  executeProxy(request)
+    .then(sendResponse)
+    .catch((err: Error) =>
+      sendResponse({ success: false, error: err.message }),
+    );
+  return true;
+});
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 /** A single serialised FormData field sent from the main world. */
@@ -126,20 +264,3 @@ async function executeProxy(msg: ProxyMessage) {
     headers: responseHeaders,
   };
 }
-
-// ─── Message Listener ────────────────────────────────────────────────────────
-
-chrome.runtime.onMessage.addListener(
-  (request: ProxyMessage, _sender, sendResponse) => {
-    if (request.type !== "PROXY_FETCH" && request.type !== "PROXY_XHR") return;
-
-    executeProxy(request)
-      .then(sendResponse)
-      .catch((err: Error) =>
-        sendResponse({ success: false, error: err.message }),
-      );
-
-    // Keep the message channel open for the async response.
-    return true;
-  },
-);
