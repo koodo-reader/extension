@@ -31,3 +31,21 @@ jobs:
         with:
           name: koodo-reader-extension-chrome
           path: dist_chrome
+
+      - name: Extract version from package.json
+        id: version
+        run: echo "version=v$(node -p \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+
+      - name: Zip build output for release
+        run: |
+          cd dist_chrome && zip -r "../koodo-reader-extension-chrome-${{ steps.version.outputs.version }}.zip" .
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
+          artifacts: koodo-reader-extension-chrome-${{ steps.version.outputs.version }}.zip
+          artifactContentType: application/zip
+          skipIfReleaseExists: true
+          generateReleaseNotes: true
