@@ -1,4 +1,4 @@
-[English Documentation](./README.md)
+[English Documentation](https://github.com/koodo-reader/extension/blob/master/README.md)
 
 <div align="center">
 <img src="public/icon-128.png" alt="logo"/>

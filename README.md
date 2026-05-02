@@ -1,4 +1,4 @@
-[中文文档](./README_cn_.md)
+[中文文档](https://github.com/koodo-reader/extension/blob/master/README_cn_.md)
 
 <div align="center">
 <img src="public/icon-128.png" alt="logo"/>
