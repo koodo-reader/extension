@@ -8,21 +8,126 @@
  *   content/index.tsx  →  chrome.runtime.sendMessage  →  background
  *   background  →  sendResponse  →  content/index.tsx
  *   content/index.tsx  →  window.postMessage(KOODO_RES)  →  main-world
+ *
+ * The response body is always Base64-encoded by the background so that
+ * binary files (images, PDFs, ZIPs …) survive the JSON message channel intact.
  */
+
+export {};
 
 const NAMESPACE = "__KOODO_PROXY__";
 let _reqId = 0;
 
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type FormEntry = {
+  name: string;
+  value: string; // plain string or Base64 file content
+  isFile: boolean;
+  fileName?: string;
+  fileType?: string;
+};
+
+type BodyEncoding = "none" | "text" | "base64" | "formdata";
+
 type ProxyResponse = {
   success: boolean;
+  /** Always Base64-encoded by the background. */
   data: string;
+  encoding: "base64";
   status: number;
   statusText?: string;
   headers: Record<string, string>;
   error?: string;
 };
 
-/** Send a proxy request via postMessage and await the response from the isolated-world bridge. */
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Read a File/Blob as a raw Base64 string (no data-URL prefix). */
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      // Strip "data:<mime>;base64," prefix
+      resolve(dataUrl.substring(dataUrl.indexOf(",") + 1));
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** Convert a Base64 string back to a Uint8Array. */
+function base64ToUint8Array(b64: string): Uint8Array {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+/**
+ * Inspect a fetch/XHR body and serialise it into a form that can travel
+ * through the JSON message channel.
+ */
+async function serializeBody(
+  body: BodyInit | Document | null | undefined,
+): Promise<{
+  bodyEncoding: BodyEncoding;
+  body?: string | null;
+  formEntries?: FormEntry[];
+}> {
+  if (body == null) return { bodyEncoding: "none" };
+
+  if (typeof body === "string") return { bodyEncoding: "text", body };
+
+  if (body instanceof URLSearchParams)
+    return { bodyEncoding: "text", body: body.toString() };
+
+  if (body instanceof FormData) {
+    const formEntries: FormEntry[] = [];
+    for (const [name, value] of body.entries()) {
+      if (value instanceof File) {
+        formEntries.push({
+          name,
+          value: await blobToBase64(value),
+          isFile: true,
+          fileName: value.name,
+          fileType: value.type,
+        });
+      } else {
+        formEntries.push({ name, value: value as string, isFile: false });
+      }
+    }
+    return { bodyEncoding: "formdata", formEntries };
+  }
+
+  if (body instanceof Blob) {
+    return { bodyEncoding: "base64", body: await blobToBase64(body) };
+  }
+
+  if (body instanceof ArrayBuffer) {
+    let binary = "";
+    const bytes = new Uint8Array(body);
+    for (let i = 0; i < bytes.byteLength; i++)
+      binary += String.fromCharCode(bytes[i]);
+    return { bodyEncoding: "base64", body: btoa(binary) };
+  }
+
+  if (ArrayBuffer.isView(body)) {
+    let binary = "";
+    const bytes = new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
+    for (let i = 0; i < bytes.byteLength; i++)
+      binary += String.fromCharCode(bytes[i]);
+    return { bodyEncoding: "base64", body: btoa(binary) };
+  }
+
+  // ReadableStream – not feasible to proxy; fall back to native
+  return { bodyEncoding: "none" };
+}
+
+// ─── postMessage Bridge ──────────────────────────────────────────────────────
+
+/** Send a proxy request via postMessage and await the Base64 response. */
 function proxyRequest(
   payload: Record<string, unknown>,
 ): Promise<ProxyResponse> {
@@ -73,27 +178,41 @@ window.fetch = async function (
         ? input.href
         : (input as Request).url;
 
-  if (!url.startsWith("http")) {
-    return _originalFetch(...args);
-  }
+  if (!url.startsWith("http")) return _originalFetch(...args);
 
-  const headers: Record<string, string> = {};
+  // Serialise request headers
+  const reqHeaders: Record<string, string> = {};
   const rawHeaders = init.headers;
   if (rawHeaders instanceof Headers) {
-    rawHeaders.forEach((v, k) => (headers[k] = v));
+    rawHeaders.forEach((v, k) => (reqHeaders[k] = v));
   } else if (Array.isArray(rawHeaders)) {
-    (rawHeaders as [string, string][]).forEach(([k, v]) => (headers[k] = v));
+    (rawHeaders as [string, string][]).forEach(([k, v]) => (reqHeaders[k] = v));
   } else if (rawHeaders) {
-    Object.assign(headers, rawHeaders);
+    Object.assign(reqHeaders, rawHeaders);
   }
+
+  // Serialise request body
+  const { bodyEncoding, body, formEntries } = await serializeBody(
+    init.body as BodyInit | null | undefined,
+  );
 
   try {
     const res = await proxyRequest({
       type: "PROXY_FETCH",
       url,
-      options: { ...init, headers },
+      method: init.method ?? "GET",
+      headers: reqHeaders,
+      bodyEncoding,
+      body,
+      formEntries,
     });
-    return new Response(res.data, { status: res.status, headers: res.headers });
+
+    // Decode Base64 response body back to binary
+    const bytes = base64ToUint8Array(res.data);
+    return new Response(bytes.buffer as ArrayBuffer, {
+      status: res.status,
+      headers: res.headers,
+    });
   } catch {
     return _originalFetch(...args);
   }
@@ -107,12 +226,25 @@ class ProxiedXMLHttpRequest extends _OriginalXHR {
   private _url = "";
   private _method = "GET";
   private _reqHeaders: Record<string, string> = {};
+  private _responseType_: XMLHttpRequestResponseType = "";
 
   open(method: string, url: string, ...rest: unknown[]): void {
     this._method = method;
     this._url = url;
     // @ts-ignore
     super.open(method, url, ...rest);
+  }
+
+  set responseType(value: XMLHttpRequestResponseType) {
+    this._responseType_ = value;
+    try {
+      super.responseType = value;
+    } catch {
+      /* ignore */
+    }
+  }
+  get responseType(): XMLHttpRequestResponseType {
+    return this._responseType_;
   }
 
   setRequestHeader(name: string, value: string): void {
@@ -128,15 +260,50 @@ class ProxiedXMLHttpRequest extends _OriginalXHR {
       return;
     }
 
-    proxyRequest({
-      type: "PROXY_XHR",
-      url,
-      method: this._method,
-      headers: this._reqHeaders,
-      body: typeof body === "string" ? body : body ? String(body) : null,
-      withCredentials: this.withCredentials,
-    })
+    const responseType = this._responseType_;
+
+    serializeBody(body as BodyInit | null | undefined)
+      .then((serialized) =>
+        proxyRequest({
+          type: "PROXY_XHR",
+          url,
+          method: this._method,
+          headers: this._reqHeaders,
+          ...serialized,
+          withCredentials: this.withCredentials,
+        }),
+      )
       .then((response) => {
+        // Decode the Base64 response into the right type
+        const bytes = base64ToUint8Array(response.data);
+
+        let decodedResponse: unknown;
+        let decodedText: string;
+
+        // Build text via TextDecoder for accuracy
+        decodedText = new TextDecoder().decode(bytes);
+
+        switch (responseType) {
+          case "arraybuffer":
+            decodedResponse = bytes.buffer;
+            break;
+          case "blob":
+            decodedResponse = new Blob([bytes.buffer as ArrayBuffer], {
+              type:
+                response.headers["content-type"] ?? "application/octet-stream",
+            });
+            break;
+          case "json":
+            try {
+              decodedResponse = JSON.parse(decodedText);
+            } catch {
+              decodedResponse = null;
+            }
+            break;
+          default:
+            decodedResponse = decodedText;
+        }
+
         Object.defineProperty(this, "readyState", {
           get: () => 4,
           configurable: true,
@@ -150,11 +317,11 @@ class ProxiedXMLHttpRequest extends _OriginalXHR {
           configurable: true,
         });
         Object.defineProperty(this, "responseText", {
-          get: () => response.data,
+          get: () => decodedText,
           configurable: true,
         });
         Object.defineProperty(this, "response", {
-          get: () => response.data,
+          get: () => decodedResponse,
           configurable: true,
         });
         Object.defineProperty(this, "getAllResponseHeaders", {
@@ -174,7 +341,6 @@ class ProxiedXMLHttpRequest extends _OriginalXHR {
           this.onload(new ProgressEvent("load"));
       })
       .catch(() => {
-        // Bridge not ready — fall back to native XHR (will hit CORS, but at least won't crash).
         super.send(body);
       });
   }
