@@ -1,11 +1,11 @@
 {
-  "name": "vite-web-extension",
+  "name": "koodo-reader-extension",
   "version": "1.0.0",
   "description": "A simple chrome & firefox extension template with Vite, React, TypeScript and Tailwind CSS.",
   "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "https://github.com/JohnBra/vite-web-extension.git"
+    "url": "https://github.com/koodo-reader/extension.git"
   },
   "scripts": {
     "build": "vite build --config vite.config.chrome.ts",

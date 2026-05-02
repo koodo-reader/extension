@@ -1,95 +1,101 @@
+[中文文档](README_cn_.md)
+
 <div align="center">
 <img src="public/icon-128.png" alt="logo"/>
-<h1>Koodo Reader 代理扩展</h1>
-<p><strong>Koodo Reader Web 版增强扩展 —— 解决跨域请求问题，优化阅读体验</strong></p>
+<h1>Koodo Reader Proxy Extension</h1>
+<p><strong>A browser extension for Koodo Reader Web — bypass CORS restrictions and enhance reading experience</strong></p>
 </div>
 
-## 简介
+## About
 
-Koodo Reader 代理扩展是一款浏览器扩展，专为 [Koodo Reader](https://web.koodoreader.com/) Web 版设计。它通过拦截并代理页面中的 `fetch` 和 `XMLHttpRequest` 请求，在扩展的 Service Worker 中重新发起，从而**绕过 CORS 跨域限制**，让 Koodo Reader Web 版能够正常访问需要跨域的资源。
+Koodo Reader Proxy Extension is a browser extension designed for the [Koodo Reader](https://web.koodoreader.com/) Web version. It intercepts `fetch` and `XMLHttpRequest` requests from the page and re-executes them in the extension's Service Worker, effectively **bypassing CORS restrictions** so that Koodo Reader Web can access cross-origin resources normally.
 
-## 功能特性
+## Features
 
-- **CORS 代理** — 拦截页面 `fetch` / `XMLHttpRequest` 请求，通过扩展背景脚本转发，绕过跨域限制
-- **自动启用** — `localhost:3000` 和 `web.koodoreader.com` 自动加入白名单
-- **手动控制** — 通过弹出面板可手动启用/禁用任意站点的代理功能
-- **完整的请求/响应支持** — 支持文本、二进制、FormData、ArrayBuffer 等多种请求体编码
-- **跨浏览器** — 支持 Chrome 和 Firefox（Manifest V3）
+- **CORS Proxy** — Intercepts `fetch` / `XMLHttpRequest` requests from the page and forwards them through the extension's background script to bypass CORS restrictions
+- **Auto-enabled** — `localhost:3000` and `web.koodoreader.com` are whitelisted automatically
+- **Manual Control** — Enable or disable the proxy for any site via the popup panel
+- **Full Request/Response Support** — Supports text, binary, FormData, ArrayBuffer, and other request body encodings
+- **Cross-browser** — Supports Chrome and Firefox (Manifest V3)
 
-## 工作原理
+## How It Works
 
 ```
-页面（MAIN world）
-    │  window.fetch / XMLHttpRequest 被拦截
+Page (MAIN world)
+    │  window.fetch / XMLHttpRequest intercepted
     │  postMessage (KOODO_REQ)
     ▼
-内容脚本（isolated world）
+Content Script (isolated world)
     │  chrome.runtime.sendMessage
     ▼
-背景脚本（Service Worker）
-    │  fetch() 重新发起请求（无 CORS 限制）
-    │  Base64 编码响应返回
+Background Script (Service Worker)
+    │  fetch() re-executes request (no CORS restrictions)
+    │  Returns Base64-encoded response
     ▼
-内容脚本 → postMessage (KOODO_RES) → 页面解码并返回
+Content Script → postMessage (KOODO_RES) → Page decodes and returns
 ```
 
-## 快速开始
+## Quick Start
 
-### 开发
+### Development
 
 ```bash
-# 安装依赖
+# Install dependencies
 npm install
 
-# Chrome 开发模式（带热更新）
+# Chrome dev mode (with HMR)
 npm run dev
 
-# 或指定浏览器
+# Or specify browser
 npm run dev:chrome
 npm run dev:firefox
 ```
 
-### 构建
+### Build
 
 ```bash
-# Chrome 生产构建
+# Chrome production build
 npm run build
 
-# 或指定浏览器
+# Or specify browser
 npm run build:chrome
 npm run build:firefox
 ```
 
-构建产物分别在 `dist_chrome` 和 `dist_firefox` 目录。
+Build output goes to `dist_chrome` and `dist_firefox` directories respectively.
 
-### 加载扩展
+### Load Extension
 
 **Chrome**
-1. 打开 `chrome://extensions`
-2. 开启「开发者模式」
-3. 点击「加载已解压的扩展程序」
-4. 选择 `dist_chrome` 目录
+
+1. Navigate to `chrome://extensions`
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select the `dist_chrome` directory
 
 **Firefox**
-1. 打开 `about:debugging#/runtime/this-firefox`
-2. 点击「临时加载附加组件」
-3. 选择 `dist_firefox` 目录中的任意文件
 
-## 技术栈
+1. Navigate to `about:debugging#/runtime/this-firefox`
+2. Click "Load Temporary Add-on"
+3. Select any file inside the `dist_firefox` directory
+
+## Tech Stack
 
 - [React 19](https://reactjs.org/)
 - [TypeScript](https://www.typescriptlang.org/)
 - [Tailwind CSS 4](https://tailwindcss.com/)
 - [Vite 6](https://vitejs.dev/)
 - [Chrome Extension Manifest V3](https://developer.chrome.com/docs/extensions/mv3/)
-- [webextension-polyfill](https://github.com/mozilla/webextension-polyfill)（可选 Firefox 兼容）
+- [webextension-polyfill](https://github.com/mozilla/webextension-polyfill) (optional Firefox compatibility)
 
-## 许可
+## License
 
-Copyright (C) 2024-2025 Koodo Reader 代理扩展 贡献者
+Copyright (C) 2024-2025 Koodo Reader Proxy Extension Contributors
 
-本程序为自由软件：在 GNU Affero 通用公共许可证（GNU Affero General Public License）第三版或（按您的选择）任何后续版本的条款下，您可以重新分发和/或修改它。
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-本程序的分发是希望它有用，但**没有任何担保**；甚至没有适销性或特定用途的隐含担保。详情请参阅 GNU Affero 通用公共许可证。
+This program is distributed in the hope that it will be useful, but **WITHOUT ANY WARRANTY**; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
 
-您应该已随本程序收到一份 GNU Affero 通用公共许可证副本。如果没有，请参阅 <https://www.gnu.org/licenses/>。
+You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+---
