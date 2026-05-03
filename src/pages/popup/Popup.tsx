@@ -1,5 +1,15 @@
 import { useEffect, useState } from "react";
 
+/** Minimal i18n helper using Chrome's built-in i18n API. */
+function t(key: string, fallback: string): string {
+  try {
+    const msg = chrome.i18n.getMessage(key);
+    return msg || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 type SiteStatus = {
   hostname: string;
   autoSite: boolean;
@@ -27,7 +37,7 @@ export default function Popup() {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs[0];
       if (!tab?.url) {
-        setError("无法获取当前页面信息");
+        setError(t("errNoPageInfo", "Unable to get current page info"));
         setLoading(false);
         return;
       }
@@ -41,7 +51,9 @@ export default function Popup() {
           if (response?.success) {
             setStatus({ hostname, ...response });
           } else {
-            setError(response?.error ?? "获取状态失败");
+            setError(
+              response?.error ?? t("errGetStatus", "Failed to get status"),
+            );
           }
           setLoading(false);
         },
@@ -57,7 +69,7 @@ export default function Popup() {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const tab = tabs[0];
     if (!tab?.id) {
-      setError("无法获取当前标签页");
+      setError(t("errNoTab", "Unable to get current tab"));
       setToggling(false);
       return;
     }
@@ -70,7 +82,9 @@ export default function Popup() {
           if (response?.success) {
             setStatus({ ...status, manuallyEnabled: false, enabled: false });
           } else {
-            setError(response?.error ?? "操作失败");
+            setError(
+              response?.error ?? t("errOperationFailed", "Operation failed"),
+            );
           }
           setToggling(false);
         },
@@ -83,7 +97,9 @@ export default function Popup() {
           if (response?.success) {
             setStatus({ ...status, manuallyEnabled: true, enabled: true });
           } else {
-            setError(response?.error ?? "操作失败");
+            setError(
+              response?.error ?? t("errOperationFailed", "Operation failed"),
+            );
           }
           setToggling(false);
         },
@@ -98,7 +114,9 @@ export default function Popup() {
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
         <div className="w-3 h-3 rounded-full bg-blue-500" />
-        <h1 className="text-base font-semibold">Koodo Reader Proxy</h1>
+        <h1 className="text-base font-semibold">
+          {t("extName", "Koodo Reader")}
+        </h1>
       </div>
 
       {/* Status */}
@@ -114,7 +132,9 @@ export default function Popup() {
         <div className="flex-1 flex flex-col">
           {/* Site info */}
           <div className="mb-3">
-            <div className="text-xs text-gray-400 mb-1">当前站点</div>
+            <div className="text-xs text-gray-400 mb-1">
+              {t("currentSite", "Current Site")}
+            </div>
             <div className="text-sm font-mono bg-gray-800 rounded px-2 py-1 truncate">
               {status.hostname}
             </div>
@@ -122,7 +142,9 @@ export default function Popup() {
 
           {/* Status badge */}
           <div className="mb-4">
-            <div className="text-xs text-gray-400 mb-1">状态</div>
+            <div className="text-xs text-gray-400 mb-1">
+              {t("status", "Status")}
+            </div>
             <div className="flex items-center gap-2">
               <span
                 className={`inline-block w-2 h-2 rounded-full ${
@@ -131,15 +153,15 @@ export default function Popup() {
               />
               <span className="text-sm">
                 {status.autoSite
-                  ? "自动启用"
+                  ? t("statusAutoEnabled", "Auto-enabled")
                   : status.manuallyEnabled
-                    ? "已手动启用"
-                    : "未启用"}
+                    ? t("statusManuallyEnabled", "Manually enabled")
+                    : t("statusDisabled", "Disabled")}
               </span>
             </div>
             {status.autoSite && (
               <div className="text-xs text-gray-500 mt-1">
-                该站点已自动加入白名单
+                {t("autoSiteHint", "This site is auto-whitelisted")}
               </div>
             )}
           </div>
@@ -156,17 +178,17 @@ export default function Popup() {
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {toggling
-                ? "处理中..."
+                ? t("btnProcessing", "Processing...")
                 : status.enabled
-                  ? "禁用此站点"
-                  : "在此站点启用"}
+                  ? t("btnDisable", "Disable this site")
+                  : t("btnEnable", "Enable on this site")}
             </button>
           )}
 
           {/* Manual enable hint for auto sites */}
           {status.autoSite && (
             <div className="text-xs text-gray-500 text-center mt-2">
-              代理功能在此站点上自动运行
+              {t("autoSiteRunning", "Service runs automatically on this site")}
             </div>
           )}
         </div>
@@ -174,7 +196,7 @@ export default function Popup() {
 
       {/* Footer */}
       <div className="mt-3 pt-3 border-t border-gray-700 text-xs text-gray-500 text-center">
-        其他站点需要手动点击启用
+        {t("footerHint", "Other sites need to be manually enabled")}
       </div>
     </div>
   );

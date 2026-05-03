@@ -1,10 +1,9 @@
 {
   "name": "koodo-reader-extension",
   "version": "1.0.0",
-  "description": "A simple chrome & firefox extension template with Vite, React, TypeScript and Tailwind CSS.",
+  "description": "A web extension that enhances the reading experience for Koodo Reader.",
   "license": "AGPL-3.0-only",
   "repository": {
-    "type": "git",
     "url": "https://github.com/koodo-reader/extension.git"
   },
   "scripts": {

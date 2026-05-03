@@ -10,7 +10,7 @@
  */
 export {};
 
-const NAMESPACE = "__KOODO_PROXY__";
+const NAMESPACE = "__KOODO_EXTENSION__";
 
 window.addEventListener("message", (event) => {
   if (

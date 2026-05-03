@@ -2,38 +2,13 @@
 
 <div align="center">
 <img src="public/icon-128.png" alt="logo"/>
-<h1>Koodo Reader Proxy Extension</h1>
-<p><strong>A browser extension for Koodo Reader Web — bypass CORS restrictions and enhance reading experience</strong></p>
+<h1>Koodo Reader Extension</h1>
+<p><strong>A web extension that enhances the reading experience for Koodo Reader.</strong></p>
 </div>
-
-## About
-
-Koodo Reader Proxy Extension is a browser extension designed for the [Koodo Reader](https://web.koodoreader.com/) Web version. It intercepts `fetch` and `XMLHttpRequest` requests from the page and re-executes them in the extension's Service Worker, effectively **bypassing CORS restrictions** so that Koodo Reader Web can access cross-origin resources normally.
 
 ## Features
 
-- **CORS Proxy** — Intercepts `fetch` / `XMLHttpRequest` requests from the page and forwards them through the extension's background script to bypass CORS restrictions
-- **Auto-enabled** — `localhost:3000` and `web.koodoreader.com` are whitelisted automatically
-- **Manual Control** — Enable or disable the proxy for any site via the popup panel
-- **Full Request/Response Support** — Supports text, binary, FormData, ArrayBuffer, and other request body encodings
-- **Cross-browser** — Supports Chrome and Firefox (Manifest V3)
-
-## How It Works
-
-```
-Page (MAIN world)
-    │  window.fetch / XMLHttpRequest intercepted
-    │  postMessage (KOODO_REQ)
-    ▼
-Content Script (isolated world)
-    │  chrome.runtime.sendMessage
-    ▼
-Background Script (Service Worker)
-    │  fetch() re-executes request (no CORS restrictions)
-    │  Returns Base64-encoded response
-    ▼
-Content Script → postMessage (KOODO_RES) → Page decodes and returns
-```
+- **CORS bypass** — Intercepts `fetch` / `XMLHttpRequest` requests from the page and forwards them through the extension's background script to bypass CORS restrictions
 
 ## Quick Start
 
@@ -90,10 +65,4 @@ Build output goes to `dist_chrome` and `dist_firefox` directories respectively.
 
 ## License
 
-Copyright (C) 2024-2025 Koodo Reader Proxy Extension Contributors
-
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but **WITHOUT ANY WARRANTY**; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+This library is distributed under the terms of [GNU AGPL v3](https://github.com/koodo-reader/extension/blob/dev/LICENSE)

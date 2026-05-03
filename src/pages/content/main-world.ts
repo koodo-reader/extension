@@ -15,7 +15,7 @@
 
 export {};
 
-const NAMESPACE = "__KOODO_PROXY__";
+const NAMESPACE = "__KOODO_EXTENSION__";
 let _reqId = 0;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -125,6 +125,25 @@ async function serializeBody(
   return { bodyEncoding: "none" };
 }
 
+// ─── Config Check ────────────────────────────────────────────────────────────
+
+/**
+ * Check whether the Koodo Reader sync configuration has been set up.
+ * Only proxy requests when both `defaultSyncOption` and `serverRegion`
+ * are configured — otherwise fall through to the native fetch / XHR.
+ *
+ * `ConfigService` is exposed by the Koodo Reader app in the page context.
+ */
+function configCheckPassed(): boolean {
+  try {
+    const syncOption = localStorage.getItem("defaultSyncOption");
+    const serverRegion = localStorage.getItem("serverRegion");
+    return Boolean(syncOption) && Boolean(serverRegion);
+  } catch {
+    return true;
+  }
+}
+
 // ─── postMessage Bridge ──────────────────────────────────────────────────────
 
 /** Send a proxy request via postMessage and await the Base64 response. */
@@ -202,6 +221,9 @@ window.fetch = async function (
 
   // Bypass proxy for blacklisted domains
   if (isBlacklisted(url)) return _originalFetch(...args);
+
+  // Only proxy when sync configuration has been set up
+  if (!configCheckPassed()) return _originalFetch(...args);
 
   // Serialise request headers
   const reqHeaders: Record<string, string> = {};
@@ -294,6 +316,12 @@ class ProxiedXMLHttpRequest extends _OriginalXHR {
 
     // Bypass proxy for blacklisted domains
     if (isBlacklisted(url)) {
+      super.send(body);
+      return;
+    }
+
+    // Only proxy when sync configuration has been set up
+    if (!configCheckPassed()) {
       super.send(body);
       return;
     }

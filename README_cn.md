@@ -2,7 +2,7 @@
 
 <div align="center">
 <img src="public/icon-128.png" alt="logo"/>
-<h1>Koodo Reader 代理扩展</h1>
+<h1>Koodo Reader 扩展</h1>
 <p><strong>Koodo Reader Web 版增强扩展 — 解决跨域请求问题，优化阅读体验</strong></p>
 </div>
 

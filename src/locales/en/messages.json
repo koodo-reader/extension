@@ -1,10 +1,70 @@
 {
   "extName": {
-    "message": "name in src/locales/en/messages.json",
+    "message": "Koodo Reader",
     "description": "Extension name"
   },
   "extDescription": {
-    "message": "description in src/locales/en/messages.json",
+    "message": "A web extension that enhances the reading experience for Koodo Reader.",
     "description": "Extension description"
+  },
+  "currentSite": {
+    "message": "Current Site",
+    "description": "Label for the current site hostname"
+  },
+  "status": {
+    "message": "Status",
+    "description": "Label for the service status"
+  },
+  "statusAutoEnabled": {
+    "message": "Auto-enabled",
+    "description": "Status text when site is auto-enabled"
+  },
+  "statusManuallyEnabled": {
+    "message": "Manually enabled",
+    "description": "Status text when site is manually enabled"
+  },
+  "statusDisabled": {
+    "message": "Disabled",
+    "description": "Status text when site is disabled"
+  },
+  "autoSiteHint": {
+    "message": "This site is auto-whitelisted",
+    "description": "Hint shown below auto-enabled status"
+  },
+  "btnDisable": {
+    "message": "Disable this site",
+    "description": "Button text to disable service on the site"
+  },
+  "btnEnable": {
+    "message": "Enable on this site",
+    "description": "Button text to enable service on the site"
+  },
+  "btnProcessing": {
+    "message": "Processing...",
+    "description": "Button text while toggling is in progress"
+  },
+  "autoSiteRunning": {
+    "message": "Service runs automatically on this site",
+    "description": "Message shown for auto-enabled sites"
+  },
+  "footerHint": {
+    "message": "Other sites need to be manually enabled",
+    "description": "Footer hint text"
+  },
+  "errNoPageInfo": {
+    "message": "Unable to get current page info",
+    "description": "Error when tab info is unavailable"
+  },
+  "errGetStatus": {
+    "message": "Failed to get status",
+    "description": "Error when fetching site status fails"
+  },
+  "errNoTab": {
+    "message": "Unable to get current tab",
+    "description": "Error when tab ID is not found"
+  },
+  "errOperationFailed": {
+    "message": "Operation failed",
+    "description": "Generic operation failure error"
   }
 }
