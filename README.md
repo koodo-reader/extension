@@ -1,4 +1,4 @@
-[中文文档](https://github.com/koodo-reader/extension/blob/main/README_cn_.md)
+[中文文档](https://github.com/koodo-reader/extension/blob/main/README_cn.md)
 
 <div align="center">
 <img src="public/icon-128.png" alt="logo"/>
@@ -8,7 +8,8 @@
 
 ## Features
 
-- **CORS bypass** — Intercepts `fetch` / `XMLHttpRequest` requests from the page and forwards them through the extension's background script to bypass CORS restrictions
+- **Sync Enhancement** — Enable sync feature with WebDAV, Baidu Netdisk, Aliyun Drive on the web version of Koodo Reader
+- **Import Enhancement** — Enable import feature with WebDAV, Baidu Netdisk, Aliyun Drive on the web version of Koodo Reader
 
 ## Quick Start
 

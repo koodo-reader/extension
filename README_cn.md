@@ -3,10 +3,70 @@
 <div align="center">
 <img src="public/icon-128.png" alt="logo"/>
 <h1>Koodo Reader 扩展</h1>
-<p><strong>Koodo Reader Web 版增强扩展 — 解决跨域请求问题，优化阅读体验</strong></p>
+<p><strong>Koodo Reader 浏览器扩展，用于优化阅读体验</strong></p>
 </div>
 
-## 简介
+## 功能
+
+- **增强同步功能** — 在 Koodo Reader 网页版中启用 WebDAV, 百度网盘和阿里云盘等数据源的同步功能
+- **增强导入功能** — 在 Koodo Reader 网页版中从 WebDAV, 百度网盘和阿里云盘等数据源导入图书的功能
+
+## 快速开始
+
+### 开发
+
+```bash
+# 安装依赖
+npm install
+
+# Chrome 开发模式（支持 HMR）
+npm run dev
+
+# 或指定浏览器
+npm run dev:chrome
+npm run dev:firefox
+```
+
+### 构建
+
+```bash
+# Chrome 生产构建
+npm run build
+
+# 或指定浏览器
+npm run build:chrome
+npm run build:firefox
+```
+
+构建产物分别输出到 `dist_chrome` 和 `dist_firefox` 目录。
+
+### 加载扩展
+
+**Chrome**
+
+1. 访问 `chrome://extensions`
+2. 开启"开发者模式"
+3. 点击"加载已解压的扩展程序"
+4. 选择 `dist_chrome` 目录
+
+**Firefox**
+
+1. 访问 `about:debugging#/runtime/this-firefox`
+2. 点击"临时加载附加组件"
+3. 选择 `dist_firefox` 目录内的任意文件
+
+## 技术栈
+
+- [React 19](https://reactjs.org/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS 4](https://tailwindcss.com/)
+- [Vite 6](https://vitejs.dev/)
+- [Chrome Extension Manifest V3](https://developer.chrome.com/docs/extensions/mv3/)
+- [webextension-polyfill](https://github.com/mozilla/webextension-polyfill)（可选的 Firefox 兼容层）
+
+## 许可证
+
+本项目基于 [GNU AGPL v3](https://github.com/koodo-reader/extension/blob/dev/LICENSE) 许可协议发布。
 
 Koodo Reader 代理扩展是一款浏览器扩展，专为 [Koodo Reader](https://web.koodoreader.com/) Web 版设计。它通过拦截页面中的 `fetch` 和 `XMLHttpRequest` 请求，在扩展的 Service Worker 中重新发起，从而**绕过 CORS 跨域限制**，让 Koodo Reader Web 版能够正常访问需要跨域的资源。
 
