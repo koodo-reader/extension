@@ -128,17 +128,16 @@ async function serializeBody(
 // ─── Config Check ────────────────────────────────────────────────────────────
 
 /**
- * Check whether the Koodo Reader sync configuration has been set up.
- * Only proxy requests when both `defaultSyncOption` and `serverRegion`
+ * Check whether the Koodo Reader configuration has been set up.
+ * Only proxy requests when `serverRegion`
  * are configured — otherwise fall through to the native fetch / XHR.
  *
- * `ConfigService` is exposed by the Koodo Reader app in the page context.
+ * `serverRegion` is set by the Koodo Reader app
  */
 function configCheckPassed(): boolean {
   try {
-    const syncOption = localStorage.getItem("defaultSyncOption");
     const serverRegion = localStorage.getItem("serverRegion");
-    return Boolean(syncOption) && Boolean(serverRegion);
+    return Boolean(serverRegion);
   } catch {
     return true;
   }
