@@ -39,6 +39,10 @@
     "message": "Enable on this site",
     "description": "Button text to enable service on the site"
   },
+  "btnRefresh": {
+    "message": "Refresh Page",
+    "description": "Button text to refresh the current page"
+  },
   "btnProcessing": {
     "message": "Processing...",
     "description": "Button text while toggling is in progress"

@@ -39,6 +39,10 @@
     "message": "在此站点启用",
     "description": "启用站点服务的按钮文本"
   },
+  "btnRefresh": {
+    "message": "刷新页面",
+    "description": "刷新当前页面的按钮文本"
+  },
   "btnProcessing": {
     "message": "处理中...",
     "description": "切换操作进行中的按钮文本"

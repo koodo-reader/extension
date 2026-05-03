@@ -74,6 +74,8 @@ export default function Popup() {
       return;
     }
 
+    const reloadTab = () => chrome.tabs.reload(tab.id!);
+
     if (status.enabled && !status.autoSite) {
       // Disable
       chrome.runtime.sendMessage(
@@ -81,6 +83,7 @@ export default function Popup() {
         (response) => {
           if (response?.success) {
             setStatus({ ...status, manuallyEnabled: false, enabled: false });
+            reloadTab();
           } else {
             setError(
               response?.error ?? t("errOperationFailed", "Operation failed"),
@@ -96,6 +99,7 @@ export default function Popup() {
         (response) => {
           if (response?.success) {
             setStatus({ ...status, manuallyEnabled: true, enabled: true });
+            reloadTab();
           } else {
             setError(
               response?.error ?? t("errOperationFailed", "Operation failed"),
@@ -107,6 +111,14 @@ export default function Popup() {
     } else {
       setToggling(false);
     }
+  };
+
+  const handleRefresh = () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.id) {
+        chrome.tabs.reload(tabs[0].id);
+      }
+    });
   };
 
   return (
@@ -171,7 +183,7 @@ export default function Popup() {
             <button
               onClick={handleToggle}
               disabled={toggling}
-              className={`w-full py-2 px-4 rounded text-sm font-medium transition-colors ${
+              className={`w-full py-2 px-4 rounded text-sm font-medium transition-colors cursor-pointer ${
                 status.enabled
                   ? "bg-red-600 hover:bg-red-700 text-white"
                   : "bg-blue-600 hover:bg-blue-700 text-white"
