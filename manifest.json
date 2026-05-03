@@ -33,13 +33,21 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://localhost:3000/*", "https://web.koodoreader.com/*"],
+      "matches": [
+        "http://localhost:3000/*",
+        "https://web.koodoreader.com/*",
+        "https://web.koodoreader.cn/*"
+      ],
       "run_at": "document_start",
       "world": "MAIN",
       "js": ["src/pages/content/main-world.ts"]
     },
     {
-      "matches": ["http://localhost:3000/*", "https://web.koodoreader.com/*"],
+      "matches": [
+        "http://localhost:3000/*",
+        "https://web.koodoreader.com/*",
+        "https://web.koodoreader.cn/*"
+      ],
       "run_at": "document_start",
       "js": ["src/pages/content/index.tsx"],
       "css": ["contentStyle.css"]

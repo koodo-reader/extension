@@ -2,7 +2,11 @@ console.log("background script loaded");
 
 // ─── Site Management ─────────────────────────────────────────────────────────
 
-const AUTO_SITES = ["localhost:3000", "web.koodoreader.com"];
+const AUTO_SITES = [
+  "localhost:3000",
+  "web.koodoreader.com",
+  "web.koodoreader.cn",
+];
 
 /** Get the set of manually enabled sites from storage. */
 async function getEnabledSites(): Promise<string[]> {
