@@ -21,72 +21,6 @@ function isAutoSite(hostname: string): boolean {
   );
 }
 
-/** Inject the extension content scripts into a tab. */
-async function injectContentScripts(tabId: number): Promise<void> {
-  // Read content script paths from the built manifest
-  const manifest = chrome.runtime.getManifest();
-  const csList = manifest.content_scripts ?? [];
-
-  const mainWorldCS = csList.find(
-    (cs) => (cs as { world?: string }).world === "MAIN",
-  );
-  const isolatedCS = csList.find((cs) => !(cs as { world?: string }).world);
-
-  const injectMain = mainWorldCS?.js ?? [];
-  const injectBridge = isolatedCS?.js ?? [];
-  const injectCSS = isolatedCS?.css ?? [];
-
-  try {
-    if (injectMain.length > 0) {
-      await chrome.scripting.executeScript({
-        target: { tabId },
-        world: "MAIN",
-        files: injectMain,
-      });
-    }
-    if (injectBridge.length > 0) {
-      await chrome.scripting.executeScript({
-        target: { tabId },
-        files: injectBridge,
-      });
-    }
-    for (const css of injectCSS) {
-      await chrome.scripting.insertCSS({
-        target: { tabId },
-        files: [css],
-      });
-    }
-    console.log(`[koodo] Injected content scripts into tab ${tabId}`);
-  } catch (err) {
-    console.error("[koodo] Injection failed:", err);
-  }
-}
-
-// ─── Auto-reinjection on navigation ──────────────────────────────────────────
-
-/** Extract hostname (host:port) from a URL string. */
-function extractHostname(url: string | undefined): string | null {
-  if (!url) return null;
-  try {
-    return new URL(url).host;
-  } catch {
-    return null;
-  }
-}
-
-// Re-inject content scripts when a tab navigates to a manually-enabled site
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status !== "loading" || !tab.url) return;
-  const hostname = extractHostname(tab.url);
-  if (!hostname || isAutoSite(hostname)) return; // auto sites inject via manifest
-
-  getEnabledSites().then((sites) => {
-    if (sites.includes(hostname)) {
-      injectContentScripts(tabId);
-    }
-  });
-});
-
 // ─── Message Handlers ────────────────────────────────────────────────────────
 
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
@@ -98,8 +32,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
           sites.push(request.hostname);
           await chrome.storage.sync.set({ enabledSites: sites });
         }
-        // Inject into the current tab
-        await injectContentScripts(request.tabId);
         sendResponse({ success: true, enabled: true });
       })
       .catch((err) => sendResponse({ success: false, error: err.message }));
@@ -128,6 +60,15 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
           manuallyEnabled,
           enabled: autoSite || manuallyEnabled,
         });
+      })
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
+  if (request.type === "GET_ENABLED_SITES") {
+    Promise.all([Promise.resolve(AUTO_SITES), getEnabledSites()])
+      .then(([autoSites, enabledSites]) => {
+        sendResponse({ success: true, autoSites, enabledSites });
       })
       .catch((err) => sendResponse({ success: false, error: err.message }));
     return true;

@@ -143,6 +143,72 @@ function configCheckPassed(): boolean {
   }
 }
 
+// ─── Site Check ─────────────────────────────────────────────────────────────
+
+/**
+ * Auto-enabled hostnames mirrored from background/index.ts.
+ * Checked synchronously — no message round-trip needed for these.
+ */
+const AUTO_SITES = [
+  "localhost:3000",
+  "web.koodoreader.com",
+  "web.koodoreader.cn",
+];
+
+function isAutoSite(hostname: string): boolean {
+  return AUTO_SITES.some(
+    (site) => hostname === site || hostname.endsWith("." + site),
+  );
+}
+
+/**
+ * Synchronous cache populated once the background responds.
+ * null = not yet received; after that, reads are instant.
+ */
+let _enabledSitesCache: string[] | null = null;
+
+// Fire-and-forget: fetch the enabled-sites list once at startup and cache it.
+(function fetchEnabledSites() {
+  const id = ++_reqId;
+  const payload = { type: "GET_ENABLED_SITES" };
+
+  function onMessage(event: MessageEvent) {
+    if (
+      event.source !== window ||
+      !event.data ||
+      event.data.__ns !== NAMESPACE ||
+      event.data.__type !== "RES" ||
+      event.data.__id !== id
+    )
+      return;
+    window.removeEventListener("message", onMessage);
+    const res = event.data.payload as {
+      success?: boolean;
+      enabledSites?: string[];
+    };
+    _enabledSitesCache = res?.enabledSites ?? [];
+  }
+
+  window.addEventListener("message", onMessage);
+  window.postMessage(
+    { __ns: NAMESPACE, __type: "REQ", __id: id, payload },
+    "*",
+  );
+})();
+
+/**
+ * Synchronously returns true if the current hostname is allowed to proxy.
+ * AUTO_SITES is always instant.  For manually-enabled sites the cache is
+ * populated at script load and is ready before page JS fires real requests.
+ * If called before the cache arrives (rare startup race), non-auto sites
+ * fall through to native fetch — no correctness issue.
+ */
+function siteCheckPassed(): boolean {
+  const hostname = location.host;
+  if (isAutoSite(hostname)) return true;
+  return (_enabledSitesCache ?? []).includes(hostname);
+}
+
 // ─── postMessage Bridge ──────────────────────────────────────────────────────
 
 /** Send a proxy request via postMessage and await the Base64 response. */
@@ -220,6 +286,9 @@ window.fetch = async function (
 
   // Bypass proxy for blacklisted domains
   if (isBlacklisted(url)) return _originalFetch(...args);
+
+  // Only proxy for auto-enabled or manually-enabled sites
+  if (!siteCheckPassed()) return _originalFetch(...args);
 
   // Only proxy when sync configuration has been set up
   if (!configCheckPassed()) return _originalFetch(...args);
@@ -319,8 +388,9 @@ class ProxiedXMLHttpRequest extends _OriginalXHR {
       return;
     }
 
-    // Only proxy when sync configuration has been set up
-    if (!configCheckPassed()) {
+    // Only proxy for auto-enabled or manually-enabled sites, and when
+    // sync configuration has been set up
+    if (!siteCheckPassed() || !configCheckPassed()) {
       super.send(body);
       return;
     }
