@@ -149,11 +149,7 @@ function configCheckPassed(): boolean {
  * Auto-enabled hostnames mirrored from background/index.ts.
  * Checked synchronously — no message round-trip needed for these.
  */
-const AUTO_SITES = [
-  "localhost:3000",
-  "web.koodoreader.com",
-  "web.koodoreader.cn",
-];
+const AUTO_SITES = ["web.koodoreader.com", "web.koodoreader.cn"];
 
 function isAutoSite(hostname: string): boolean {
   return AUTO_SITES.some(

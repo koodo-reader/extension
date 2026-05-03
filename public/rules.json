@@ -28,11 +28,7 @@
       ]
     },
     "condition": {
-      "initiatorDomains": [
-        "localhost",
-        "web.koodoreader.com",
-        "web.koodoreader.cn"
-      ],
+      "initiatorDomains": ["web.koodoreader.com", "web.koodoreader.cn"],
       "resourceTypes": [
         "xmlhttprequest",
         "sub_frame",
