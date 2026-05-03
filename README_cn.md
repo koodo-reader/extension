@@ -3,7 +3,7 @@
 <div align="center">
 <img src="public/icon-128.png" alt="logo"/>
 <h1>Koodo Reader 扩展</h1>
-<p><strong>Koodo Reader 浏览器扩展，用于优化阅读体验</strong></p>
+<p><strong>用于提升 Koodo Reader 阅读体验的浏览器扩展，</strong></p>
 </div>
 
 ## 功能
