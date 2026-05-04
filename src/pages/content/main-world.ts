@@ -268,6 +268,8 @@ const _originalFetch = window.fetch.bind(window);
 window.fetch = async function (
   ...args: Parameters<typeof fetch>
 ): Promise<Response> {
+  // Only proxy for auto-enabled or manually-enabled sites
+  if (!siteCheckPassed()) return _originalFetch(...args);
   const input = args[0];
   const init: RequestInit = args[1] ?? {};
 
@@ -282,9 +284,6 @@ window.fetch = async function (
 
   // Bypass proxy for blacklisted domains
   if (isBlacklisted(url)) return _originalFetch(...args);
-
-  // Only proxy for auto-enabled or manually-enabled sites
-  if (!siteCheckPassed()) return _originalFetch(...args);
 
   // Only proxy when sync configuration has been set up
   if (!configCheckPassed()) return _originalFetch(...args);
@@ -371,6 +370,12 @@ class ProxiedXMLHttpRequest extends _OriginalXHR {
   }
 
   send(body?: Document | XMLHttpRequestBodyInit | null): void {
+    // Only proxy for auto-enabled or manually-enabled sites, and when
+    if (!siteCheckPassed()) {
+      super.send(body);
+      return;
+    }
+
     const url = this._url;
 
     if (!url.startsWith("http")) {
@@ -384,9 +389,8 @@ class ProxiedXMLHttpRequest extends _OriginalXHR {
       return;
     }
 
-    // Only proxy for auto-enabled or manually-enabled sites, and when
     // sync configuration has been set up
-    if (!siteCheckPassed() || !configCheckPassed()) {
+    if (!configCheckPassed()) {
       super.send(body);
       return;
     }
