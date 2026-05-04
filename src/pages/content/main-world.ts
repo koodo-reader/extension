@@ -11,6 +11,9 @@
  *
  * The response body is always Base64-encoded by the background so that
  * binary files (images, PDFs, ZIPs …) survive the JSON message channel intact.
+ *
+ * Only installs fetch / XHR interceptors on auto-enabled or manually-enabled
+ * sites.  On other sites this script is a no-op.
  */
 
 export {};
@@ -163,8 +166,8 @@ function isAutoSite(hostname: string): boolean {
  */
 let _enabledSitesCache: string[] | null = null;
 
-// Fire-and-forget: fetch the enabled-sites list once at startup and cache it.
-(function fetchEnabledSites() {
+/** Fire-and-forget: fetch the enabled-sites list once at startup and cache it. */
+function fetchEnabledSites(): void {
   const id = ++_reqId;
   const payload = { type: "GET_ENABLED_SITES" };
 
@@ -190,14 +193,12 @@ let _enabledSitesCache: string[] | null = null;
     { __ns: NAMESPACE, __type: "REQ", __id: id, payload },
     "*",
   );
-})();
+}
 
 /**
  * Synchronously returns true if the current hostname is allowed to proxy.
  * AUTO_SITES is always instant.  For manually-enabled sites the cache is
  * populated at script load and is ready before page JS fires real requests.
- * If called before the cache arrives (rare startup race), non-auto sites
- * fall through to native fetch — no correctness issue.
  */
 function siteCheckPassed(): boolean {
   const hostname = location.host;
@@ -261,247 +262,293 @@ function isBlacklisted(url: string): boolean {
   }
 }
 
-// ─── Fetch Interceptor ───────────────────────────────────────────────────────
+// ─── Init ────────────────────────────────────────────────────────────────────
 
-const _originalFetch = window.fetch.bind(window);
+/**
+ * Install fetch / XHR interceptors and fetch the enabled-sites cache.
+ * Only called when the current site is confirmed as allowed (auto or manual).
+ */
+function initMainWorld(): void {
+  // Fetch the manually-enabled sites list (fire-and-forget)
+  fetchEnabledSites();
 
-window.fetch = async function (
-  ...args: Parameters<typeof fetch>
-): Promise<Response> {
-  // Only proxy for auto-enabled or manually-enabled sites
-  if (!siteCheckPassed()) return _originalFetch(...args);
-  const input = args[0];
-  const init: RequestInit = args[1] ?? {};
+  // ── Fetch Interceptor ──────────────────────────────────────────────
 
-  const url =
-    typeof input === "string"
-      ? input
-      : input instanceof URL
-        ? input.href
-        : (input as Request).url;
+  const _originalFetch = window.fetch.bind(window);
 
-  if (!url.startsWith("http")) return _originalFetch(...args);
+  window.fetch = async function (
+    ...args: Parameters<typeof fetch>
+  ): Promise<Response> {
+    // Only proxy for auto-enabled or manually-enabled sites
+    if (!siteCheckPassed()) return _originalFetch(...args);
+    const input = args[0];
+    const init: RequestInit = args[1] ?? {};
 
-  // Bypass proxy for blacklisted domains
-  if (isBlacklisted(url)) return _originalFetch(...args);
+    const url =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.href
+          : (input as Request).url;
 
-  // Only proxy when sync configuration has been set up
-  if (!configCheckPassed()) return _originalFetch(...args);
-
-  // Serialise request headers
-  const reqHeaders: Record<string, string> = {};
-  const rawHeaders = init.headers;
-  if (rawHeaders instanceof Headers) {
-    rawHeaders.forEach((v, k) => (reqHeaders[k] = v));
-  } else if (Array.isArray(rawHeaders)) {
-    (rawHeaders as [string, string][]).forEach(([k, v]) => (reqHeaders[k] = v));
-  } else if (rawHeaders) {
-    Object.assign(reqHeaders, rawHeaders);
-  }
-
-  // Serialise request body
-  const { bodyEncoding, body, formEntries } = await serializeBody(
-    init.body as BodyInit | null | undefined,
-  );
-
-  try {
-    const res = await proxyRequest({
-      type: "PROXY_FETCH",
-      url,
-      method: init.method ?? "GET",
-      headers: reqHeaders,
-      bodyEncoding,
-      body,
-      formEntries,
-    });
-    if (res.data === "") {
-      return new Response(null, {
-        status: res.status,
-        statusText: res.statusText ?? "",
-        headers: res.headers,
-      });
-    }
-
-    // Decode Base64 response body back to binary
-    const bytes = base64ToUint8Array(res.data);
-    return new Response(bytes.buffer as ArrayBuffer, {
-      status: res.status,
-      headers: res.headers,
-    });
-  } catch (err) {
-    // Do NOT fall back to the native fetch – that would send the request
-    // from the page origin and trigger a CORS block.  Surface the error.
-    throw err;
-  }
-};
-
-// ─── XMLHttpRequest Interceptor ──────────────────────────────────────────────
-
-const _OriginalXHR = window.XMLHttpRequest;
-
-class ProxiedXMLHttpRequest extends _OriginalXHR {
-  private _url = "";
-  private _method = "GET";
-  private _reqHeaders: Record<string, string> = {};
-  private _responseType_: XMLHttpRequestResponseType = "";
-
-  open(method: string, url: string, ...rest: unknown[]): void {
-    this._method = method;
-    this._url = url;
-    // @ts-ignore
-    super.open(method, url, ...rest);
-  }
-
-  set responseType(value: XMLHttpRequestResponseType) {
-    this._responseType_ = value;
-    try {
-      super.responseType = value;
-    } catch {
-      /* ignore */
-    }
-  }
-  get responseType(): XMLHttpRequestResponseType {
-    return this._responseType_;
-  }
-
-  setRequestHeader(name: string, value: string): void {
-    this._reqHeaders[name] = value;
-    super.setRequestHeader(name, value);
-  }
-
-  send(body?: Document | XMLHttpRequestBodyInit | null): void {
-    // Only proxy for auto-enabled or manually-enabled sites, and when
-    if (!siteCheckPassed()) {
-      super.send(body);
-      return;
-    }
-
-    const url = this._url;
-
-    if (!url.startsWith("http")) {
-      super.send(body);
-      return;
-    }
+    if (!url.startsWith("http")) return _originalFetch(...args);
 
     // Bypass proxy for blacklisted domains
-    if (isBlacklisted(url)) {
-      super.send(body);
-      return;
+    if (isBlacklisted(url)) return _originalFetch(...args);
+
+    // Only proxy when sync configuration has been set up
+    if (!configCheckPassed()) return _originalFetch(...args);
+
+    // Serialise request headers
+    const reqHeaders: Record<string, string> = {};
+    const rawHeaders = init.headers;
+    if (rawHeaders instanceof Headers) {
+      rawHeaders.forEach((v, k) => (reqHeaders[k] = v));
+    } else if (Array.isArray(rawHeaders)) {
+      (rawHeaders as [string, string][]).forEach(
+        ([k, v]) => (reqHeaders[k] = v),
+      );
+    } else if (rawHeaders) {
+      Object.assign(reqHeaders, rawHeaders);
     }
 
-    // sync configuration has been set up
-    if (!configCheckPassed()) {
-      super.send(body);
-      return;
-    }
+    // Serialise request body
+    const { bodyEncoding, body, formEntries } = await serializeBody(
+      init.body as BodyInit | null | undefined,
+    );
 
-    const responseType = this._responseType_;
-
-    serializeBody(body as BodyInit | null | undefined)
-      .then((serialized) =>
-        proxyRequest({
-          type: "PROXY_XHR",
-          url,
-          method: this._method,
-          headers: this._reqHeaders,
-          ...serialized,
-          withCredentials: this.withCredentials,
-        }),
-      )
-      .then((response) => {
-        // Decode the Base64 response into the right type
-        const bytes = base64ToUint8Array(response.data);
-
-        let decodedResponse: unknown;
-        let decodedText: string;
-
-        // Build text via TextDecoder for accuracy
-        decodedText = new TextDecoder().decode(bytes);
-
-        switch (responseType) {
-          case "arraybuffer":
-            decodedResponse = bytes.buffer;
-            break;
-          case "blob":
-            decodedResponse = new Blob([bytes.buffer as ArrayBuffer], {
-              type:
-                response.headers["content-type"] ?? "application/octet-stream",
-            });
-            break;
-          case "json":
-            try {
-              decodedResponse = JSON.parse(decodedText);
-            } catch {
-              decodedResponse = null;
-            }
-            break;
-          default:
-            decodedResponse = decodedText;
-        }
-
-        Object.defineProperty(this, "readyState", {
-          get: () => 4,
-          configurable: true,
-        });
-        Object.defineProperty(this, "status", {
-          get: () => response.status,
-          configurable: true,
-        });
-        Object.defineProperty(this, "statusText", {
-          get: () => response.statusText ?? "",
-          configurable: true,
-        });
-        Object.defineProperty(this, "responseText", {
-          get: () => decodedText,
-          configurable: true,
-        });
-        Object.defineProperty(this, "response", {
-          get: () => decodedResponse,
-          configurable: true,
-        });
-        Object.defineProperty(this, "getAllResponseHeaders", {
-          value: () =>
-            Object.entries(response.headers)
-              .map(([k, v]) => `${k}: ${v}`)
-              .join("\r\n"),
-          configurable: true,
-        });
-
-        this.dispatchEvent(new Event("readystatechange"));
-        this.dispatchEvent(new ProgressEvent("load"));
-        this.dispatchEvent(new ProgressEvent("loadend"));
-        if (typeof this.onreadystatechange === "function")
-          this.onreadystatechange(new Event("readystatechange"));
-        if (typeof this.onload === "function")
-          this.onload(new ProgressEvent("load"));
-      })
-      .catch((err) => {
-        // Do NOT fall back to super.send() – that fires a real XHR from the
-        // page origin and causes a CORS preflight failure.  Instead, dispatch
-        // an error event so the caller receives a proper network error.
-        Object.defineProperty(this, "readyState", {
-          get: () => 4,
-          configurable: true,
-        });
-        Object.defineProperty(this, "status", {
-          get: () => 0,
-          configurable: true,
-        });
-        Object.defineProperty(this, "statusText", {
-          get: () => "",
-          configurable: true,
-        });
-        this.dispatchEvent(new Event("readystatechange"));
-        this.dispatchEvent(new ProgressEvent("error"));
-        this.dispatchEvent(new ProgressEvent("loadend"));
-        if (typeof this.onreadystatechange === "function")
-          this.onreadystatechange(new Event("readystatechange"));
-        if (typeof this.onerror === "function")
-          this.onerror(new ProgressEvent("error"));
-        console.error("[koodo] XHR proxy failed, request not retried:", err);
+    try {
+      const res = await proxyRequest({
+        type: "PROXY_FETCH",
+        url,
+        method: init.method ?? "GET",
+        headers: reqHeaders,
+        bodyEncoding,
+        body,
+        formEntries,
       });
+      if (res.data === "") {
+        return new Response(null, {
+          status: res.status,
+          statusText: res.statusText ?? "",
+          headers: res.headers,
+        });
+      }
+
+      // Decode Base64 response body back to binary
+      const bytes = base64ToUint8Array(res.data);
+      return new Response(bytes.buffer as ArrayBuffer, {
+        status: res.status,
+        headers: res.headers,
+      });
+    } catch (err) {
+      // Do NOT fall back to the native fetch – that would send the request
+      // from the page origin and trigger a CORS block.  Surface the error.
+      throw err;
+    }
+  };
+
+  // ── XMLHttpRequest Interceptor ────────────────────────────────────
+
+  const _OriginalXHR = window.XMLHttpRequest;
+
+  class ProxiedXMLHttpRequest extends _OriginalXHR {
+    private _url = "";
+    private _method = "GET";
+    private _reqHeaders: Record<string, string> = {};
+    private _responseType_: XMLHttpRequestResponseType = "";
+
+    open(method: string, url: string, ...rest: unknown[]): void {
+      this._method = method;
+      this._url = url;
+      // @ts-ignore
+      super.open(method, url, ...rest);
+    }
+
+    set responseType(value: XMLHttpRequestResponseType) {
+      this._responseType_ = value;
+      try {
+        super.responseType = value;
+      } catch {
+        /* ignore */
+      }
+    }
+    get responseType(): XMLHttpRequestResponseType {
+      return this._responseType_;
+    }
+
+    setRequestHeader(name: string, value: string): void {
+      this._reqHeaders[name] = value;
+      super.setRequestHeader(name, value);
+    }
+
+    send(body?: Document | XMLHttpRequestBodyInit | null): void {
+      if (!siteCheckPassed()) {
+        super.send(body);
+        return;
+      }
+
+      const url = this._url;
+
+      if (!url.startsWith("http")) {
+        super.send(body);
+        return;
+      }
+
+      // Bypass proxy for blacklisted domains
+      if (isBlacklisted(url)) {
+        super.send(body);
+        return;
+      }
+
+      // sync configuration has been set up
+      if (!configCheckPassed()) {
+        super.send(body);
+        return;
+      }
+
+      const responseType = this._responseType_;
+
+      serializeBody(body as BodyInit | null | undefined)
+        .then((serialized) =>
+          proxyRequest({
+            type: "PROXY_XHR",
+            url,
+            method: this._method,
+            headers: this._reqHeaders,
+            ...serialized,
+            withCredentials: this.withCredentials,
+          }),
+        )
+        .then((response) => {
+          // Decode the Base64 response into the right type
+          const bytes = base64ToUint8Array(response.data);
+
+          let decodedResponse: unknown;
+          let decodedText: string;
+
+          // Build text via TextDecoder for accuracy
+          decodedText = new TextDecoder().decode(bytes);
+
+          switch (responseType) {
+            case "arraybuffer":
+              decodedResponse = bytes.buffer;
+              break;
+            case "blob":
+              decodedResponse = new Blob([bytes.buffer as ArrayBuffer], {
+                type:
+                  response.headers["content-type"] ??
+                  "application/octet-stream",
+              });
+              break;
+            case "json":
+              try {
+                decodedResponse = JSON.parse(decodedText);
+              } catch {
+                decodedResponse = null;
+              }
+              break;
+            default:
+              decodedResponse = decodedText;
+          }
+
+          Object.defineProperty(this, "readyState", {
+            get: () => 4,
+            configurable: true,
+          });
+          Object.defineProperty(this, "status", {
+            get: () => response.status,
+            configurable: true,
+          });
+          Object.defineProperty(this, "statusText", {
+            get: () => response.statusText ?? "",
+            configurable: true,
+          });
+          Object.defineProperty(this, "responseText", {
+            get: () => decodedText,
+            configurable: true,
+          });
+          Object.defineProperty(this, "response", {
+            get: () => decodedResponse,
+            configurable: true,
+          });
+          Object.defineProperty(this, "getAllResponseHeaders", {
+            value: () =>
+              Object.entries(response.headers)
+                .map(([k, v]) => `${k}: ${v}`)
+                .join("\r\n"),
+            configurable: true,
+          });
+
+          this.dispatchEvent(new Event("readystatechange"));
+          this.dispatchEvent(new ProgressEvent("load"));
+          this.dispatchEvent(new ProgressEvent("loadend"));
+          if (typeof this.onreadystatechange === "function")
+            this.onreadystatechange(new Event("readystatechange"));
+          if (typeof this.onload === "function")
+            this.onload(new ProgressEvent("load"));
+        })
+        .catch((err) => {
+          // Do NOT fall back to super.send() – that fires a real XHR from the
+          // page origin and causes a CORS preflight failure.  Instead, dispatch
+          // an error event so the caller receives a proper network error.
+          Object.defineProperty(this, "readyState", {
+            get: () => 4,
+            configurable: true,
+          });
+          Object.defineProperty(this, "status", {
+            get: () => 0,
+            configurable: true,
+          });
+          Object.defineProperty(this, "statusText", {
+            get: () => "",
+            configurable: true,
+          });
+          this.dispatchEvent(new Event("readystatechange"));
+          this.dispatchEvent(new ProgressEvent("error"));
+          this.dispatchEvent(new ProgressEvent("loadend"));
+          if (typeof this.onreadystatechange === "function")
+            this.onreadystatechange(new Event("readystatechange"));
+          if (typeof this.onerror === "function")
+            this.onerror(new ProgressEvent("error"));
+          console.error(
+            "[koodo] XHR proxy failed, request not retried:",
+            err,
+          );
+        });
+    }
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).XMLHttpRequest = ProxiedXMLHttpRequest;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).XMLHttpRequest = ProxiedXMLHttpRequest;
+// ─── Startup ─────────────────────────────────────────────────────────────────
+
+const _hostname = location.host;
+
+if (isAutoSite(_hostname)) {
+  // Auto-enabled site – install interceptors immediately
+  initMainWorld();
+} else {
+  // Wait for the isolated-world bridge (index.tsx) to confirm this site is
+  // manually enabled.  The bridge checks chrome.storage.sync on startup.
+  function onBridgeReady(event: MessageEvent) {
+    if (
+      event.source !== window ||
+      !event.data ||
+      event.data.__ns !== NAMESPACE ||
+      event.data.__type !== "BRIDGE_READY"
+    )
+      return;
+    window.removeEventListener("message", onBridgeReady);
+    initMainWorld();
+  }
+
+  window.addEventListener("message", onBridgeReady);
+
+  // If the bridge never responds, this site is not enabled — clean up
+  setTimeout(() => {
+    window.removeEventListener("message", onBridgeReady);
+  }, 3000);
+}
