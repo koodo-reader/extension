@@ -128,24 +128,6 @@ async function serializeBody(
   return { bodyEncoding: "none" };
 }
 
-// ─── Config Check ────────────────────────────────────────────────────────────
-
-/**
- * Check whether the Koodo Reader configuration has been set up.
- * Only proxy requests when `serverRegion`
- * are configured — otherwise fall through to the native fetch / XHR.
- *
- * `serverRegion` is set by the Koodo Reader app
- */
-function configCheckPassed(): boolean {
-  try {
-    const serverRegion = localStorage.getItem("serverRegion");
-    return Boolean(serverRegion);
-  } catch {
-    return true;
-  }
-}
-
 // ─── Site Check ─────────────────────────────────────────────────────────────
 
 /**
@@ -296,9 +278,6 @@ function initMainWorld(): void {
     // Bypass proxy for blacklisted domains
     if (isBlacklisted(url)) return _originalFetch(...args);
 
-    // Only proxy when sync configuration has been set up
-    if (!configCheckPassed()) return _originalFetch(...args);
-
     // Serialise request headers
     const reqHeaders: Record<string, string> = {};
     const rawHeaders = init.headers;
@@ -397,12 +376,6 @@ function initMainWorld(): void {
 
       // Bypass proxy for blacklisted domains
       if (isBlacklisted(url)) {
-        super.send(body);
-        return;
-      }
-
-      // sync configuration has been set up
-      if (!configCheckPassed()) {
         super.send(body);
         return;
       }
@@ -511,10 +484,7 @@ function initMainWorld(): void {
             this.onreadystatechange(new Event("readystatechange"));
           if (typeof this.onerror === "function")
             this.onerror(new ProgressEvent("error"));
-          console.error(
-            "[koodo] XHR proxy failed, request not retried:",
-            err,
-          );
+          console.error("[koodo] XHR proxy failed, request not retried:", err);
         });
     }
   }
