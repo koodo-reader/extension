@@ -230,7 +230,12 @@ function proxyRequest(
  * Domains (and their subdomains) whose requests should bypass the proxy
  * and use the native fetch / XHR directly.
  */
-const PROXY_BLACKLIST = ["koodoreader.com", "koodoreader.cn", "960960.xyz"];
+const PROXY_BLACKLIST = [
+  "koodoreader.com",
+  "koodoreader.cn",
+  "960960.xyz",
+  "chatwoot.com",
+];
 
 /** Check whether a URL matches a blacklisted domain or any of its subdomains. */
 function isBlacklisted(url: string): boolean {
