@@ -8,8 +8,8 @@
 
 ## 功能
 
-- **增强同步功能** — 在 Koodo Reader 网页版中支持使用 WebDAV, S3兼容，Yandex Disk，pCloud，115网盘，百度网盘和阿里云盘进行同步
-- **增强导入功能** — 在 Koodo Reader 网页版中支持从 WebDAV, S3兼容，Yandex Disk，pCloud，115网盘，百度网盘和阿里云盘等数据源导入图书
+- **增强同步功能** — 在 Koodo Reader 网页版中支持使用 WebDAV, S3兼容进行同步
+- **增强导入功能** — 在 Koodo Reader 网页版中支持从 WebDAV, S3兼容导入图书
 
 ## 快速开始
 

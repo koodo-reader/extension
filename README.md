@@ -8,8 +8,8 @@
 
 ## Features
 
-- **Sync Enhancement** — Enable sync feature with WebDAV, S3 compatible, Yandex Disk, pCloud, 115 Pan, Baidu Netdisk, Aliyun Drive on the web version of Koodo Reader
-- **Import Enhancement** — Enable import feature with WebDAV, S3 compatible, Yandex Disk, pCloud, 115 Pan, Baidu Netdisk, Aliyun Drive on the web version of Koodo Reader
+- **Sync Enhancement** — Enable sync feature with WebDAV, S3 compatible on the web version of Koodo Reader
+- **Import Enhancement** — Enable import feature with WebDAV, S3 compatible on the web version of Koodo Reader
 
 ## Quick Start
 
