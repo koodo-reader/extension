@@ -151,14 +151,14 @@ function IconBox({
   variant?: IconBoxVariant;
 }) {
   const styles: Record<IconBoxVariant, string> = {
-    dark: "bg-koodo-ink text-white",
-    orange: "bg-koodo-orange text-white",
-    danger: "bg-koodo-danger text-white",
-    muted: "bg-koodo-paper border border-koodo-border text-koodo-muted",
+    dark: "bg-app-ink text-white",
+    orange: "bg-app-orange text-white",
+    danger: "bg-app-danger text-white",
+    muted: "bg-app-paper border border-app-border text-app-muted",
   };
   return (
     <div
-      className={`w-10 h-10 rounded-koodo-xl flex items-center justify-center shrink-0 ${styles[variant]}`}
+      className={`w-10 h-10 rounded-app-xl flex items-center justify-center shrink-0 ${styles[variant]}`}
     >
       {children}
     </div>
@@ -181,7 +181,7 @@ function PrimaryButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="w-full py-2.5 px-5 rounded-full text-sm font-medium bg-koodo-ink text-white hover:bg-koodo-ink/90 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-koodo-card flex items-center justify-center gap-2"
+      className="w-full py-2.5 px-5 rounded-full text-sm font-medium bg-app-ink text-white hover:bg-app-ink/90 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-app-card flex items-center justify-center gap-2"
     >
       {icon && <span className="shrink-0">{icon}</span>}
       {children}
@@ -204,14 +204,14 @@ function OutlineButton({
 }) {
   const styles =
     variant === "danger"
-      ? "border-koodo-danger/40 text-koodo-danger hover:bg-koodo-danger-bg"
-      : "border-koodo-border text-koodo-ink hover:bg-koodo-paper";
+      ? "border-app-danger/40 text-app-danger hover:bg-app-danger-bg"
+      : "border-app-border text-app-ink hover:bg-app-paper";
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`w-full py-2.5 px-5 rounded-full text-sm font-medium bg-koodo-surface border active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${styles}`}
+      className={`w-full py-2.5 px-5 rounded-full text-sm font-medium bg-app-surface border active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${styles}`}
     >
       {icon && <span className="shrink-0">{icon}</span>}
       {children}
@@ -228,7 +228,7 @@ function Card({
 }) {
   return (
     <div
-      className={`bg-koodo-surface border border-koodo-border rounded-koodo-2xl p-4 shadow-koodo-card ${className}`}
+      className={`bg-app-surface border border-app-border rounded-app-2xl p-4 shadow-app-card ${className}`}
     >
       {children}
     </div>
@@ -238,10 +238,10 @@ function Card({
 function MetaRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <div className="text-[10px] font-semibold text-koodo-muted uppercase tracking-widest">
+      <div className="text-[10px] font-semibold text-app-muted uppercase tracking-widest">
         {label}
       </div>
-      <div className="text-sm text-koodo-ink bg-koodo-paper/60 border border-koodo-border rounded-xl px-3 py-2 leading-relaxed">
+      <div className="text-sm text-app-ink bg-app-paper/60 border border-app-border rounded-xl px-3 py-2 leading-relaxed">
         {children}
       </div>
     </div>
@@ -261,10 +261,10 @@ function CardHeader({
     <div className="flex items-center gap-3 mb-4">
       {icon}
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-koodo-ink leading-snug">
+        <p className="text-sm font-semibold text-app-ink leading-snug">
           {title}
         </p>
-        <p className="text-xs text-koodo-muted leading-snug mt-0.5">
+        <p className="text-xs text-app-muted leading-snug mt-0.5">
           {subtitle}
         </p>
       </div>
@@ -452,16 +452,16 @@ export default function Popup() {
         : null;
 
   return (
-    <div className="flex flex-col min-h-[420px] bg-koodo-cream text-koodo-ink">
+    <div className="flex flex-col bg-app-cream text-app-ink rounded-2xl overflow-hidden">
       {/* ── Content ── */}
       <div className="flex-1 flex flex-col p-4 gap-3">
         {loading ? (
           /* Loading */
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 py-12">
-            <div className="w-12 h-12 rounded-koodo-xl bg-koodo-surface border border-koodo-border shadow-koodo-card flex items-center justify-center">
-              <div className="w-5 h-5 border-2 border-koodo-orange border-t-transparent rounded-full animate-spin" />
+          <div className="flex flex-col items-center justify-center gap-3 py-12">
+            <div className="w-12 h-12 rounded-app-xl bg-app-surface border border-app-border shadow-app-card flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-app-orange border-t-transparent rounded-full animate-spin" />
             </div>
-            <p className="text-xs text-koodo-muted">
+            <p className="text-xs text-app-muted">
               {t("loading", "Loading…")}
             </p>
           </div>
@@ -473,10 +473,10 @@ export default function Popup() {
                 <IconAlert />
               </IconBox>
               <div className="flex-1 min-w-0 pt-0.5">
-                <p className="text-sm font-semibold text-koodo-ink mb-1">
+                <p className="text-sm font-semibold text-app-ink mb-1">
                   {t("errTitle", "Something went wrong")}
                 </p>
-                <p className="text-xs text-koodo-body leading-relaxed">
+                <p className="text-xs text-app-body leading-relaxed">
                   {error}
                 </p>
               </div>
@@ -506,7 +506,7 @@ export default function Popup() {
                 </MetaRow>
                 <MetaRow label={t("pageUrl", "Page URL")}>
                   <span
-                    className="font-mono text-[11px] text-koodo-body break-all"
+                    className="font-mono text-[11px] text-app-body break-all"
                     title={tabInfo.url}
                   >
                     {tabInfo.url}
@@ -543,7 +543,7 @@ export default function Popup() {
               />
               <div className="space-y-3">
                 <MetaRow label={t("currentSite", "Current Site")}>
-                  <span className="font-mono text-[11px] text-koodo-body">
+                  <span className="font-mono text-[11px] text-app-body">
                     {status.hostname}
                   </span>
                 </MetaRow>
@@ -551,11 +551,11 @@ export default function Popup() {
                   <span
                     className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                       status.enabled
-                        ? "bg-koodo-orange shadow-[0_0_0_3px_rgb(242_139_48/0.2)]"
-                        : "bg-koodo-muted/40"
+                        ? "bg-app-orange shadow-[0_0_0_3px_rgb(242_139_48/0.2)]"
+                        : "bg-app-muted/40"
                     }`}
                   />
-                  <span className="text-xs text-koodo-body">
+                  <span className="text-xs text-app-body">
                     {status.manuallyEnabled
                       ? t("statusManuallyEnabled", "Manually enabled")
                       : t("statusDisabled", "Disabled")}
@@ -599,7 +599,7 @@ export default function Popup() {
                 subtitle={t("autoSiteHint", "This site is auto-whitelisted")}
               />
               <MetaRow label={t("currentSite", "Current Site")}>
-                <span className="font-mono text-[11px] text-koodo-body">
+                <span className="font-mono text-[11px] text-app-body">
                   {status.hostname}
                 </span>
               </MetaRow>
@@ -608,7 +608,7 @@ export default function Popup() {
               <IconBox variant="orange">
                 <IconBook />
               </IconBox>
-              <p className="text-xs text-koodo-body leading-relaxed">
+              <p className="text-xs text-app-body leading-relaxed">
                 {t(
                   "autoSiteRunning",
                   "Service runs automatically on this site",
@@ -621,7 +621,7 @@ export default function Popup() {
 
       {/* ── Footer hint ── */}
       {footerHint && (
-        <footer className="px-4 pb-4 pt-1 text-[11px] text-koodo-muted text-center leading-relaxed border-t border-koodo-border/60 mt-auto pt-3">
+        <footer className="px-4 pb-4 pt-3 text-[11px] text-app-muted text-center leading-relaxed border-t border-app-border/60 mt-auto">
           {footerHint}
         </footer>
       )}
