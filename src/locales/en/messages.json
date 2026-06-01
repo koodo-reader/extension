@@ -93,7 +93,7 @@
   },
   "errNoAppVersion": {
     "message": "This page is not a Koodo Reader web app",
-    "description": "Error when enabling proxy without appVersion"
+    "description": "Error when enabling forward without appVersion"
   },
   "loading": {
     "message": "Loading…",
@@ -107,16 +107,16 @@
     "message": "Import this page into your library",
     "description": "Subtitle in save mode card"
   },
-  "proxyTitle": {
-    "message": "Proxy Mode",
-    "description": "Title for proxy mode card"
+  "forwardTitle": {
+    "message": "Forward Mode",
+    "description": "Title for forward mode card"
   },
-  "proxyActive": {
-    "message": "Network proxy is active",
-    "description": "Subtitle when proxy is enabled"
+  "forwardActive": {
+    "message": "Network forward is active",
+    "description": "Subtitle when forward is enabled"
   },
-  "proxyInactive": {
-    "message": "Network proxy is disabled",
-    "description": "Subtitle when proxy is disabled"
+  "forwardInactive": {
+    "message": "Network forward is disabled",
+    "description": "Subtitle when forward is disabled"
   }
 }

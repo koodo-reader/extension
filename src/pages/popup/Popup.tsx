@@ -23,7 +23,7 @@ type TabInfo = {
   url: string;
 };
 
-type PageMode = "auto" | "proxy" | "save";
+type PageMode = "auto" | "forward" | "save";
 
 function getHostname(url: string): string {
   try {
@@ -141,7 +141,7 @@ function IconAlert({ size = 18 }: { size?: number }) {
 
 // ─── Primitive UI components ──────────────────────────────────────────────────
 
-type IconBoxVariant = "dark" | "orange" | "danger" | "muted";
+type IconBoxVariant = "dark" | "muted";
 
 function IconBox({
   children,
@@ -152,8 +152,6 @@ function IconBox({
 }) {
   const styles: Record<IconBoxVariant, string> = {
     dark: "bg-app-ink text-white",
-    orange: "bg-app-orange text-white",
-    danger: "bg-app-danger text-white",
     muted: "bg-app-paper border border-app-border text-app-muted",
   };
   return (
@@ -193,19 +191,16 @@ function OutlineButton({
   children,
   onClick,
   disabled,
-  variant = "default",
+  variant = "dark",
   icon,
 }: {
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
-  variant?: "default" | "danger";
+  variant?: "dark";
   icon?: ReactNode;
 }) {
-  const styles =
-    variant === "danger"
-      ? "border-app-danger/40 text-app-danger hover:bg-app-danger-bg"
-      : "border-app-border text-app-ink hover:bg-app-paper";
+  const styles = "border-app-border text-app-ink hover:bg-app-paper";
   return (
     <button
       type="button"
@@ -264,9 +259,7 @@ function CardHeader({
         <p className="text-sm font-semibold text-app-ink leading-snug">
           {title}
         </p>
-        <p className="text-xs text-app-muted leading-snug mt-0.5">
-          {subtitle}
-        </p>
+        <p className="text-xs text-app-muted leading-snug mt-0.5">{subtitle}</p>
       </div>
     </div>
   );
@@ -356,7 +349,7 @@ export default function Popup() {
           return;
         }
 
-        setPageMode(hasAppVersion ? "proxy" : "save");
+        setPageMode(hasAppVersion ? "forward" : "save");
       } catch (err) {
         setError(
           err instanceof Error
@@ -447,7 +440,7 @@ export default function Popup() {
           "saveFooterHint",
           "Save this page to read in Koodo Reader desktop app",
         )
-      : pageMode === "proxy"
+      : pageMode === "forward"
         ? t("footerHint", "Other sites need to be manually enabled")
         : null;
 
@@ -459,26 +452,22 @@ export default function Popup() {
           /* Loading */
           <div className="flex flex-col items-center justify-center gap-3 py-12">
             <div className="w-12 h-12 rounded-app-xl bg-app-surface border border-app-border shadow-app-card flex items-center justify-center">
-              <div className="w-5 h-5 border-2 border-app-orange border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-app-ink border-t-transparent rounded-full animate-spin" />
             </div>
-            <p className="text-xs text-app-muted">
-              {t("loading", "Loading…")}
-            </p>
+            <p className="text-xs text-app-muted">{t("loading", "Loading…")}</p>
           </div>
         ) : error ? (
           /* Error */
           <Card>
             <div className="flex items-start gap-3">
-              <IconBox variant="danger">
+              <IconBox variant="dark">
                 <IconAlert />
               </IconBox>
               <div className="flex-1 min-w-0 pt-0.5">
                 <p className="text-sm font-semibold text-app-ink mb-1">
                   {t("errTitle", "Something went wrong")}
                 </p>
-                <p className="text-xs text-app-body leading-relaxed">
-                  {error}
-                </p>
+                <p className="text-xs text-app-body leading-relaxed">{error}</p>
               </div>
             </div>
           </Card>
@@ -524,21 +513,21 @@ export default function Popup() {
                 : t("btnSave", "Save to Koodo Reader")}
             </PrimaryButton>
           </>
-        ) : status && pageMode === "proxy" ? (
-          /* Proxy mode */
+        ) : status && pageMode === "forward" ? (
+          /* Forward mode */
           <>
             <Card>
               <CardHeader
                 icon={
-                  <IconBox variant={status.enabled ? "orange" : "muted"}>
+                  <IconBox variant={status.enabled ? "dark" : "muted"}>
                     <IconZap />
                   </IconBox>
                 }
-                title={t("proxyTitle", "Proxy Mode")}
+                title={t("forwardTitle", "Forward Mode")}
                 subtitle={
                   status.enabled
-                    ? t("proxyActive", "Network proxy is active")
-                    : t("proxyInactive", "Network proxy is disabled")
+                    ? t("forwardActive", "Network forward is active")
+                    : t("forwardInactive", "Network forward is disabled")
                 }
               />
               <div className="space-y-3">
@@ -551,7 +540,7 @@ export default function Popup() {
                   <span
                     className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                       status.enabled
-                        ? "bg-app-orange shadow-[0_0_0_3px_rgb(242_139_48/0.2)]"
+                        ? "bg-app-ink border border-app-ink"
                         : "bg-app-muted/40"
                     }`}
                   />
@@ -567,7 +556,7 @@ export default function Popup() {
               <OutlineButton
                 onClick={handleToggle}
                 disabled={toggling}
-                variant="danger"
+                variant="dark"
               >
                 {toggling
                   ? t("btnProcessing", "Processing...")
@@ -605,9 +594,7 @@ export default function Popup() {
               </MetaRow>
             </Card>
             <Card className="flex items-center gap-3">
-              <IconBox variant="orange">
-                <IconBook />
-              </IconBox>
+              <IconZap />
               <p className="text-xs text-app-body leading-relaxed">
                 {t(
                   "autoSiteRunning",

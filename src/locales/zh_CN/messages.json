@@ -93,7 +93,7 @@
   },
   "errNoAppVersion": {
     "message": "此页面不是 Koodo Reader 网页应用",
-    "description": "无 appVersion 时尝试启用代理的错误"
+    "description": "无 appVersion 时尝试启用转发的错误"
   },
   "loading": {
     "message": "加载中…",
@@ -107,16 +107,16 @@
     "message": "将此页面导入到您的书库",
     "description": "保存模式卡片副标题"
   },
-  "proxyTitle": {
-    "message": "代理模式",
-    "description": "代理模式卡片标题"
+  "forwardTitle": {
+    "message": "转发模式",
+    "description": "转发模式卡片标题"
   },
-  "proxyActive": {
-    "message": "网络代理已激活",
-    "description": "代理启用时的副标题"
+  "forwardActive": {
+    "message": "网络转发已激活",
+    "description": "转发启用时的副标题"
   },
-  "proxyInactive": {
-    "message": "网络代理未启用",
-    "description": "代理禁用时的副标题"
+  "forwardInactive": {
+    "message": "网络转发未启用",
+    "description": "转发禁用时的副标题"
   }
 }

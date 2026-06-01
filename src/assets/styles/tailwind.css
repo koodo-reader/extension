@@ -1,28 +1,27 @@
 @import "tailwindcss";
 
 @theme {
-    --animate-spin-slow: spin 20s linear infinite;
+  --animate-spin-slow: spin 20s linear infinite;
 
-    --color-app-cream: #f7f6f2;
-    --color-app-paper: #f2f0eb;
-    --color-app-ink: #1a1e26;
-    --color-app-muted: #6b7280;
-    --color-app-body: #5c5c5c;
-    --color-app-orange: #f28b30;
-    --color-app-orange-hover: #e07d28;
-    --color-app-surface: #ffffff;
-    --color-app-border: #e8e5df;
-    --color-app-success: #2d8a4e;
-    --color-app-danger: #c44b4b;
-    --color-app-danger-bg: #fdf0f0;
+  --color-app-cream: #f7f6f2;
+  --color-app-paper: #f2f0eb;
+  --color-app-ink: #1a1e26;
+  --color-app-muted: #6b7280;
+  --color-app-body: #5c5c5c;
+  --color-app-surface: #ffffff;
+  --color-app-border: #e8e5df;
+  --color-app-success: #2d8a4e;
+  --color-app-danger: #c44b4b;
+  --color-app-danger-bg: #fdf0f0;
 
-    --radius-app-xl: 1rem;
-    --radius-app-2xl: 1.25rem;
-    --shadow-app-card: 0 1px 3px rgb(26 30 38 / 0.06), 0 4px 12px rgb(26 30 38 / 0.04);
+  --radius-app-xl: 1rem;
+  --radius-app-2xl: 1.25rem;
+  --shadow-app-card:
+    0 1px 3px rgb(26 30 38 / 0.06), 0 4px 12px rgb(26 30 38 / 0.04);
 
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
     }
+  }
 }

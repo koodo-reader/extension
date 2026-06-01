@@ -33,7 +33,7 @@ type FormEntry = {
 
 type BodyEncoding = "none" | "text" | "base64" | "formdata";
 
-type ProxyResponse = {
+type ForwardResponse = {
   success: boolean;
   /** Always Base64-encoded by the background. */
   data: string;
@@ -124,7 +124,7 @@ async function serializeBody(
     return { bodyEncoding: "base64", body: btoa(binary) };
   }
 
-  // ReadableStream – not feasible to proxy; fall back to native
+  // ReadableStream – not feasible to forward; fall back to native
   return { bodyEncoding: "none" };
 }
 
@@ -178,7 +178,7 @@ function fetchEnabledSites(): void {
 }
 
 /**
- * Synchronously returns true if the current hostname is allowed to proxy.
+ * Synchronously returns true if the current hostname is allowed to forward.
  * AUTO_SITES is always instant.  For manually-enabled sites the cache is
  * populated at script load and is ready before page JS fires real requests.
  */
@@ -190,10 +190,10 @@ function siteCheckPassed(): boolean {
 
 // ─── postMessage Bridge ──────────────────────────────────────────────────────
 
-/** Send a proxy request via postMessage and await the Base64 response. */
-function proxyRequest(
+/** Send a forward request via postMessage and await the Base64 response. */
+function forwardRequest(
   payload: Record<string, unknown>,
-): Promise<ProxyResponse> {
+): Promise<ForwardResponse> {
   return new Promise((resolve, reject) => {
     const id = ++_reqId;
 
@@ -208,11 +208,11 @@ function proxyRequest(
         return;
 
       window.removeEventListener("message", onMessage);
-      const res: ProxyResponse = event.data.payload;
+      const res: ForwardResponse = event.data.payload;
       if (res.success) {
         resolve(res);
       } else {
-        reject(new TypeError(res.error ?? "Proxy request failed"));
+        reject(new TypeError(res.error ?? "Forward request failed"));
       }
     }
 
@@ -224,13 +224,13 @@ function proxyRequest(
   });
 }
 
-// ─── Proxy Blacklist ─────────────────────────────────────────────────────────
+// ─── Forward Blacklist ───────────────────────────────────────────────────────
 
 /**
- * Domains (and their subdomains) whose requests should bypass the proxy
+ * Domains (and their subdomains) whose requests should bypass the forward
  * and use the native fetch / XHR directly.
  */
-const PROXY_BLACKLIST = [
+const FORWARD_BLACKLIST = [
   "koodoreader.com",
   "koodoreader.cn",
   "960960.xyz",
@@ -241,7 +241,7 @@ const PROXY_BLACKLIST = [
 function isBlacklisted(url: string): boolean {
   try {
     const hostname = new URL(url).hostname.toLowerCase();
-    return PROXY_BLACKLIST.some(
+    return FORWARD_BLACKLIST.some(
       (domain) => hostname === domain || hostname.endsWith("." + domain),
     );
   } catch {
@@ -266,7 +266,7 @@ function initMainWorld(): void {
   window.fetch = async function (
     ...args: Parameters<typeof fetch>
   ): Promise<Response> {
-    // Only proxy for auto-enabled or manually-enabled sites
+    // Only forward for auto-enabled or manually-enabled sites
     if (!siteCheckPassed()) return _originalFetch(...args);
     const input = args[0];
     const init: RequestInit = args[1] ?? {};
@@ -280,7 +280,7 @@ function initMainWorld(): void {
 
     if (!url.startsWith("http")) return _originalFetch(...args);
 
-    // Bypass proxy for blacklisted domains
+    // Bypass forward for blacklisted domains
     if (isBlacklisted(url)) return _originalFetch(...args);
 
     // Serialise request headers
@@ -302,8 +302,8 @@ function initMainWorld(): void {
     );
 
     try {
-      const res = await proxyRequest({
-        type: "PROXY_FETCH",
+      const res = await forwardRequest({
+        type: "FORWARD_FETCH",
         url,
         method: init.method ?? "GET",
         headers: reqHeaders,
@@ -336,7 +336,7 @@ function initMainWorld(): void {
 
   const _OriginalXHR = window.XMLHttpRequest;
 
-  class ProxiedXMLHttpRequest extends _OriginalXHR {
+  class ForwardedXMLHttpRequest extends _OriginalXHR {
     private _url = "";
     private _method = "GET";
     private _reqHeaders: Record<string, string> = {};
@@ -379,7 +379,7 @@ function initMainWorld(): void {
         return;
       }
 
-      // Bypass proxy for blacklisted domains
+      // Bypass forward for blacklisted domains
       if (isBlacklisted(url)) {
         super.send(body);
         return;
@@ -389,8 +389,8 @@ function initMainWorld(): void {
 
       serializeBody(body as BodyInit | null | undefined)
         .then((serialized) =>
-          proxyRequest({
-            type: "PROXY_XHR",
+          forwardRequest({
+            type: "FORWARD_XHR",
             url,
             method: this._method,
             headers: this._reqHeaders,
@@ -489,13 +489,13 @@ function initMainWorld(): void {
             this.onreadystatechange(new Event("readystatechange"));
           if (typeof this.onerror === "function")
             this.onerror(new ProgressEvent("error"));
-          console.error("[koodo] XHR proxy failed, request not retried:", err);
+          console.error("[koodo] XHR forward failed, request not retried:", err);
         });
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).XMLHttpRequest = ProxiedXMLHttpRequest;
+  (window as any).XMLHttpRequest = ForwardedXMLHttpRequest;
 }
 
 // ─── Startup ─────────────────────────────────────────────────────────────────

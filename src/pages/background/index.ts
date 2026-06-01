@@ -110,10 +110,10 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return true;
   }
 
-  // Proxy fetch/XHR (existing logic)
-  if (request.type !== "PROXY_FETCH" && request.type !== "PROXY_XHR") return;
+  // Forward fetch/XHR (existing logic)
+  if (request.type !== "FORWARD_FETCH" && request.type !== "FORWARD_XHR") return;
 
-  executeProxy(request)
+  executeForward(request)
     .then(sendResponse)
     .catch((err: Error) =>
       sendResponse({ success: false, error: err.message }),
@@ -133,8 +133,8 @@ type FormEntry = {
   fileType?: string;
 };
 
-type ProxyMessage = {
-  type: "PROXY_FETCH" | "PROXY_XHR";
+type ForwardMessage = {
+  type: "FORWARD_FETCH" | "FORWARD_XHR";
   url: string;
   method?: string;
   headers?: Record<string, string>;
@@ -149,7 +149,7 @@ type ProxyMessage = {
   body?: string | null;
   formEntries?: FormEntry[];
   withCredentials?: boolean;
-  /** Legacy: PROXY_FETCH used to pass the whole RequestInit here. */
+  /** Legacy: FORWARD_FETCH used to pass the whole RequestInit here. */
   options?: RequestInit & { headers?: Record<string, string> };
 };
 
@@ -171,7 +171,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
  * fetch, which is the only way to get a Blob inside a Service Worker.
  */
 async function buildRequestBody(
-  msg: ProxyMessage,
+  msg: ForwardMessage,
 ): Promise<BodyInit | null | undefined> {
   switch (msg.bodyEncoding) {
     case "none":
@@ -239,11 +239,11 @@ function extractCredentials(rawUrl: string): {
 }
 
 /**
- * Execute the proxied request and return a serialisable result.
+ * Execute the forwarded request and return a serialisable result.
  * The response body is always returned as Base64 so that binary files
  * (images, PDFs, ZIPs …) survive the JSON message channel intact.
  */
-async function executeProxy(msg: ProxyMessage) {
+async function executeForward(msg: ForwardMessage) {
   const method =
     msg.method ?? (msg.options as RequestInit | undefined)?.method ?? "GET";
   const headers: Record<string, string> = {
@@ -253,7 +253,7 @@ async function executeProxy(msg: ProxyMessage) {
 
   // The Fetch API forbids credentials embedded in URLs (throws TypeError).
   // Extract them and convert to an Authorization header so the service
-  // worker can proxy WebDAV requests that use user:pass@host style URLs.
+  // worker can forward WebDAV requests that use user:pass@host style URLs.
   const { cleanUrl, authHeader } = extractCredentials(msg.url);
   if (authHeader && !headers["authorization"] && !headers["Authorization"]) {
     headers["Authorization"] = authHeader;
