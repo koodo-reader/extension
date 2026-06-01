@@ -10,11 +10,6 @@ function t(key: string, fallback: string): string {
   }
 }
 
-const LOGO_URL =
-  typeof chrome !== "undefined" && chrome.runtime?.getURL
-    ? chrome.runtime.getURL("icon-32.png")
-    : "";
-
 type SiteStatus = {
   hostname: string;
   autoSite: boolean;
@@ -224,7 +219,13 @@ function OutlineButton({
   );
 }
 
-function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+function Card({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <div
       className={`bg-koodo-surface border border-koodo-border rounded-koodo-2xl p-4 shadow-koodo-card ${className}`}
@@ -260,8 +261,12 @@ function CardHeader({
     <div className="flex items-center gap-3 mb-4">
       {icon}
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-koodo-ink leading-snug">{title}</p>
-        <p className="text-xs text-koodo-muted leading-snug mt-0.5">{subtitle}</p>
+        <p className="text-sm font-semibold text-koodo-ink leading-snug">
+          {title}
+        </p>
+        <p className="text-xs text-koodo-muted leading-snug mt-0.5">
+          {subtitle}
+        </p>
       </div>
     </div>
   );
@@ -438,39 +443,16 @@ export default function Popup() {
 
   const footerHint =
     pageMode === "save"
-      ? t("saveFooterHint", "Save this page to read in Koodo Reader desktop app")
+      ? t(
+          "saveFooterHint",
+          "Save this page to read in Koodo Reader desktop app",
+        )
       : pageMode === "proxy"
         ? t("footerHint", "Other sites need to be manually enabled")
         : null;
 
   return (
     <div className="flex flex-col min-h-[420px] bg-koodo-cream text-koodo-ink">
-      {/* ── Header ── */}
-      <header className="flex items-center justify-between px-4 py-3 bg-koodo-surface border-b border-koodo-border">
-        <div className="flex items-center gap-2.5">
-          {LOGO_URL ? (
-            <img
-              src={LOGO_URL}
-              alt=""
-              className="w-7 h-7 rounded-lg shrink-0"
-              width={28}
-              height={28}
-            />
-          ) : (
-            <div className="w-7 h-7 rounded-lg bg-koodo-ink flex items-center justify-center shrink-0">
-              <span className="text-koodo-orange text-xs font-bold">K</span>
-            </div>
-          )}
-          <h1 className="text-[15px] leading-none">
-            <span className="font-bold italic">koodo</span>
-            <span className="text-koodo-muted font-normal"> reader</span>
-          </h1>
-        </div>
-        <span className="text-[10px] font-semibold text-koodo-orange bg-koodo-orange/10 px-2.5 py-1 rounded-full tracking-wide">
-          Extension
-        </span>
-      </header>
-
       {/* ── Content ── */}
       <div className="flex-1 flex flex-col p-4 gap-3">
         {loading ? (
@@ -479,7 +461,9 @@ export default function Popup() {
             <div className="w-12 h-12 rounded-koodo-xl bg-koodo-surface border border-koodo-border shadow-koodo-card flex items-center justify-center">
               <div className="w-5 h-5 border-2 border-koodo-orange border-t-transparent rounded-full animate-spin" />
             </div>
-            <p className="text-xs text-koodo-muted">{t("loading", "Loading…")}</p>
+            <p className="text-xs text-koodo-muted">
+              {t("loading", "Loading…")}
+            </p>
           </div>
         ) : error ? (
           /* Error */
@@ -492,7 +476,9 @@ export default function Popup() {
                 <p className="text-sm font-semibold text-koodo-ink mb-1">
                   {t("errTitle", "Something went wrong")}
                 </p>
-                <p className="text-xs text-koodo-body leading-relaxed">{error}</p>
+                <p className="text-xs text-koodo-body leading-relaxed">
+                  {error}
+                </p>
               </div>
             </div>
           </Card>
@@ -501,9 +487,16 @@ export default function Popup() {
           <>
             <Card>
               <CardHeader
-                icon={<IconBox variant="dark"><IconDownload /></IconBox>}
+                icon={
+                  <IconBox variant="dark">
+                    <IconDownload />
+                  </IconBox>
+                }
                 title={t("btnSave", "Save to Koodo Reader")}
-                subtitle={t("saveSubtitle", "Import this page into your library")}
+                subtitle={t(
+                  "saveSubtitle",
+                  "Import this page into your library",
+                )}
               />
               <div className="space-y-3">
                 <MetaRow label={t("pageTitle", "Page title")}>
@@ -597,7 +590,11 @@ export default function Popup() {
           <>
             <Card>
               <CardHeader
-                icon={<IconBox variant="dark"><IconCheck /></IconBox>}
+                icon={
+                  <IconBox variant="dark">
+                    <IconCheck />
+                  </IconBox>
+                }
                 title={t("statusAutoEnabled", "Auto-enabled")}
                 subtitle={t("autoSiteHint", "This site is auto-whitelisted")}
               />
@@ -612,7 +609,10 @@ export default function Popup() {
                 <IconBook />
               </IconBox>
               <p className="text-xs text-koodo-body leading-relaxed">
-                {t("autoSiteRunning", "Service runs automatically on this site")}
+                {t(
+                  "autoSiteRunning",
+                  "Service runs automatically on this site",
+                )}
               </p>
             </Card>
           </>
