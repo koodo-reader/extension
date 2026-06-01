@@ -94,5 +94,29 @@
   "errNoAppVersion": {
     "message": "This page is not a Koodo Reader web app",
     "description": "Error when enabling proxy without appVersion"
+  },
+  "loading": {
+    "message": "Loading…",
+    "description": "Loading state text"
+  },
+  "errTitle": {
+    "message": "Something went wrong",
+    "description": "Generic error title"
+  },
+  "saveSubtitle": {
+    "message": "Import this page into your library",
+    "description": "Subtitle in save mode card"
+  },
+  "proxyTitle": {
+    "message": "Proxy Mode",
+    "description": "Title for proxy mode card"
+  },
+  "proxyActive": {
+    "message": "Network proxy is active",
+    "description": "Subtitle when proxy is enabled"
+  },
+  "proxyInactive": {
+    "message": "Network proxy is disabled",
+    "description": "Subtitle when proxy is disabled"
   }
 }

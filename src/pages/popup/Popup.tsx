@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { readPageContextInTab } from "../../utils/pageContext";
 
-/** Minimal i18n helper using Chrome's built-in i18n API. */
 function t(key: string, fallback: string): string {
   try {
     const msg = chrome.i18n.getMessage(key);
@@ -10,6 +9,11 @@ function t(key: string, fallback: string): string {
     return fallback;
   }
 }
+
+const LOGO_URL =
+  typeof chrome !== "undefined" && chrome.runtime?.getURL
+    ? chrome.runtime.getURL("icon-32.png")
+    : "";
 
 type SiteStatus = {
   hostname: string;
@@ -42,6 +46,228 @@ function isHttpUrl(url: string): boolean {
 function buildImportSchemeUrl(pageUrl: string): string {
   return `koodo-reader://import-url?importUrl=${encodeURIComponent(pageUrl)}`;
 }
+
+// ─── SVG Icons ───────────────────────────────────────────────────────────────
+
+function IconBook({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  );
+}
+
+function IconCheck({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function IconDownload({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+
+function IconZap({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+}
+
+function IconAlert({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+  );
+}
+
+// ─── Primitive UI components ──────────────────────────────────────────────────
+
+type IconBoxVariant = "dark" | "orange" | "danger" | "muted";
+
+function IconBox({
+  children,
+  variant = "dark",
+}: {
+  children: ReactNode;
+  variant?: IconBoxVariant;
+}) {
+  const styles: Record<IconBoxVariant, string> = {
+    dark: "bg-koodo-ink text-white",
+    orange: "bg-koodo-orange text-white",
+    danger: "bg-koodo-danger text-white",
+    muted: "bg-koodo-paper border border-koodo-border text-koodo-muted",
+  };
+  return (
+    <div
+      className={`w-10 h-10 rounded-koodo-xl flex items-center justify-center shrink-0 ${styles[variant]}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function PrimaryButton({
+  children,
+  onClick,
+  disabled,
+  icon,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  icon?: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full py-2.5 px-5 rounded-full text-sm font-medium bg-koodo-ink text-white hover:bg-koodo-ink/90 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-koodo-card flex items-center justify-center gap-2"
+    >
+      {icon && <span className="shrink-0">{icon}</span>}
+      {children}
+    </button>
+  );
+}
+
+function OutlineButton({
+  children,
+  onClick,
+  disabled,
+  variant = "default",
+  icon,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  variant?: "default" | "danger";
+  icon?: ReactNode;
+}) {
+  const styles =
+    variant === "danger"
+      ? "border-koodo-danger/40 text-koodo-danger hover:bg-koodo-danger-bg"
+      : "border-koodo-border text-koodo-ink hover:bg-koodo-paper";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`w-full py-2.5 px-5 rounded-full text-sm font-medium bg-koodo-surface border active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${styles}`}
+    >
+      {icon && <span className="shrink-0">{icon}</span>}
+      {children}
+    </button>
+  );
+}
+
+function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <div
+      className={`bg-koodo-surface border border-koodo-border rounded-koodo-2xl p-4 shadow-koodo-card ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function MetaRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <div className="text-[10px] font-semibold text-koodo-muted uppercase tracking-widest">
+        {label}
+      </div>
+      <div className="text-sm text-koodo-ink bg-koodo-paper/60 border border-koodo-border rounded-xl px-3 py-2 leading-relaxed">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function CardHeader({
+  icon,
+  title,
+  subtitle,
+}: {
+  icon: ReactNode;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      {icon}
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-koodo-ink leading-snug">{title}</p>
+        <p className="text-xs text-koodo-muted leading-snug mt-0.5">{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function Popup() {
   const [status, setStatus] = useState<SiteStatus | null>(null);
@@ -176,10 +402,7 @@ export default function Popup() {
             reloadTab();
           } else if (response?.error === "NO_APP_VERSION") {
             setError(
-              t(
-                "errNoAppVersion",
-                "This page is not a Koodo Reader web app",
-              ),
+              t("errNoAppVersion", "This page is not a Koodo Reader web app"),
             );
           } else {
             setError(
@@ -204,8 +427,6 @@ export default function Popup() {
       { type: "OPEN_IMPORT_URL", url: schemeUrl, tabId: tabInfo.id },
       (response) => {
         if (chrome.runtime.lastError || !response?.success) {
-          // Popup cannot use <a>.click() for custom schemes; fall back to
-          // navigating the extension page, which Chrome treats as a top-level open.
           window.location.assign(schemeUrl);
           setSaving(false);
           return;
@@ -217,146 +438,192 @@ export default function Popup() {
 
   const footerHint =
     pageMode === "save"
-      ? t(
-          "saveFooterHint",
-          "Save this page to read in Koodo Reader desktop app",
-        )
+      ? t("saveFooterHint", "Save this page to read in Koodo Reader desktop app")
       : pageMode === "proxy"
         ? t("footerHint", "Other sites need to be manually enabled")
-        : pageMode === "auto"
-          ? null
-          : null;
+        : null;
 
   return (
-    <div className="flex flex-col h-full p-4 bg-gray-900 text-white">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-3 h-3 rounded-full bg-blue-500" />
-        <h1 className="text-base font-semibold">
-          {t("extName", "Koodo Reader")}
-        </h1>
+    <div className="flex flex-col min-h-[420px] bg-koodo-cream text-koodo-ink">
+      {/* ── Header ── */}
+      <header className="flex items-center justify-between px-4 py-3 bg-koodo-surface border-b border-koodo-border">
+        <div className="flex items-center gap-2.5">
+          {LOGO_URL ? (
+            <img
+              src={LOGO_URL}
+              alt=""
+              className="w-7 h-7 rounded-lg shrink-0"
+              width={28}
+              height={28}
+            />
+          ) : (
+            <div className="w-7 h-7 rounded-lg bg-koodo-ink flex items-center justify-center shrink-0">
+              <span className="text-koodo-orange text-xs font-bold">K</span>
+            </div>
+          )}
+          <h1 className="text-[15px] leading-none">
+            <span className="font-bold italic">koodo</span>
+            <span className="text-koodo-muted font-normal"> reader</span>
+          </h1>
+        </div>
+        <span className="text-[10px] font-semibold text-koodo-orange bg-koodo-orange/10 px-2.5 py-1 rounded-full tracking-wide">
+          Extension
+        </span>
+      </header>
+
+      {/* ── Content ── */}
+      <div className="flex-1 flex flex-col p-4 gap-3">
+        {loading ? (
+          /* Loading */
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 py-12">
+            <div className="w-12 h-12 rounded-koodo-xl bg-koodo-surface border border-koodo-border shadow-koodo-card flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-koodo-orange border-t-transparent rounded-full animate-spin" />
+            </div>
+            <p className="text-xs text-koodo-muted">{t("loading", "Loading…")}</p>
+          </div>
+        ) : error ? (
+          /* Error */
+          <Card>
+            <div className="flex items-start gap-3">
+              <IconBox variant="danger">
+                <IconAlert />
+              </IconBox>
+              <div className="flex-1 min-w-0 pt-0.5">
+                <p className="text-sm font-semibold text-koodo-ink mb-1">
+                  {t("errTitle", "Something went wrong")}
+                </p>
+                <p className="text-xs text-koodo-body leading-relaxed">{error}</p>
+              </div>
+            </div>
+          </Card>
+        ) : pageMode === "save" && tabInfo ? (
+          /* Save mode */
+          <>
+            <Card>
+              <CardHeader
+                icon={<IconBox variant="dark"><IconDownload /></IconBox>}
+                title={t("btnSave", "Save to Koodo Reader")}
+                subtitle={t("saveSubtitle", "Import this page into your library")}
+              />
+              <div className="space-y-3">
+                <MetaRow label={t("pageTitle", "Page title")}>
+                  <span className="line-clamp-2" title={tabInfo.title}>
+                    {tabInfo.title}
+                  </span>
+                </MetaRow>
+                <MetaRow label={t("pageUrl", "Page URL")}>
+                  <span
+                    className="font-mono text-[11px] text-koodo-body break-all"
+                    title={tabInfo.url}
+                  >
+                    {tabInfo.url}
+                  </span>
+                </MetaRow>
+              </div>
+            </Card>
+            <PrimaryButton
+              onClick={handleSave}
+              disabled={saving}
+              icon={<IconDownload size={15} />}
+            >
+              {saving
+                ? t("btnProcessing", "Processing...")
+                : t("btnSave", "Save to Koodo Reader")}
+            </PrimaryButton>
+          </>
+        ) : status && pageMode === "proxy" ? (
+          /* Proxy mode */
+          <>
+            <Card>
+              <CardHeader
+                icon={
+                  <IconBox variant={status.enabled ? "orange" : "muted"}>
+                    <IconZap />
+                  </IconBox>
+                }
+                title={t("proxyTitle", "Proxy Mode")}
+                subtitle={
+                  status.enabled
+                    ? t("proxyActive", "Network proxy is active")
+                    : t("proxyInactive", "Network proxy is disabled")
+                }
+              />
+              <div className="space-y-3">
+                <MetaRow label={t("currentSite", "Current Site")}>
+                  <span className="font-mono text-[11px] text-koodo-body">
+                    {status.hostname}
+                  </span>
+                </MetaRow>
+                <div className="flex items-center gap-2 px-1">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      status.enabled
+                        ? "bg-koodo-orange shadow-[0_0_0_3px_rgb(242_139_48/0.2)]"
+                        : "bg-koodo-muted/40"
+                    }`}
+                  />
+                  <span className="text-xs text-koodo-body">
+                    {status.manuallyEnabled
+                      ? t("statusManuallyEnabled", "Manually enabled")
+                      : t("statusDisabled", "Disabled")}
+                  </span>
+                </div>
+              </div>
+            </Card>
+            {status.enabled ? (
+              <OutlineButton
+                onClick={handleToggle}
+                disabled={toggling}
+                variant="danger"
+              >
+                {toggling
+                  ? t("btnProcessing", "Processing...")
+                  : t("btnDisable", "Disable this site")}
+              </OutlineButton>
+            ) : (
+              <PrimaryButton
+                onClick={handleToggle}
+                disabled={toggling}
+                icon={<IconZap size={15} />}
+              >
+                {toggling
+                  ? t("btnProcessing", "Processing...")
+                  : t("btnEnable", "Enable on this site")}
+              </PrimaryButton>
+            )}
+          </>
+        ) : status && pageMode === "auto" ? (
+          /* Auto mode */
+          <>
+            <Card>
+              <CardHeader
+                icon={<IconBox variant="dark"><IconCheck /></IconBox>}
+                title={t("statusAutoEnabled", "Auto-enabled")}
+                subtitle={t("autoSiteHint", "This site is auto-whitelisted")}
+              />
+              <MetaRow label={t("currentSite", "Current Site")}>
+                <span className="font-mono text-[11px] text-koodo-body">
+                  {status.hostname}
+                </span>
+              </MetaRow>
+            </Card>
+            <Card className="flex items-center gap-3">
+              <IconBox variant="orange">
+                <IconBook />
+              </IconBox>
+              <p className="text-xs text-koodo-body leading-relaxed">
+                {t("autoSiteRunning", "Service runs automatically on this site")}
+              </p>
+            </Card>
+          </>
+        ) : null}
       </div>
 
-      {loading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
-        </div>
-      ) : error ? (
-        <div className="flex-1 flex items-center justify-center text-red-400 text-sm text-center px-2">
-          {error}
-        </div>
-      ) : pageMode === "save" && tabInfo ? (
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="mb-3 min-h-0">
-            <div className="text-xs text-gray-400 mb-1">
-              {t("pageTitle", "Page title")}
-            </div>
-            <div
-              className="text-sm bg-gray-800 rounded px-2 py-1 line-clamp-2"
-              title={tabInfo.title}
-            >
-              {tabInfo.title}
-            </div>
-          </div>
-          <div className="mb-4 min-h-0 flex-1">
-            <div className="text-xs text-gray-400 mb-1">
-              {t("pageUrl", "Page URL")}
-            </div>
-            <div
-              className="text-xs font-mono bg-gray-800 rounded px-2 py-1 break-all max-h-24 overflow-y-auto"
-              title={tabInfo.url}
-            >
-              {tabInfo.url}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full py-2 px-4 rounded text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {saving
-              ? t("btnProcessing", "Processing...")
-              : t("btnSave", "Save to Koodo Reader")}
-          </button>
-        </div>
-      ) : status && pageMode === "proxy" ? (
-        <div className="flex-1 flex flex-col">
-          <div className="mb-3">
-            <div className="text-xs text-gray-400 mb-1">
-              {t("currentSite", "Current Site")}
-            </div>
-            <div className="text-sm font-mono bg-gray-800 rounded px-2 py-1 truncate">
-              {status.hostname}
-            </div>
-          </div>
-          <div className="mb-4">
-            <div className="text-xs text-gray-400 mb-1">
-              {t("status", "Status")}
-            </div>
-            <div className="flex items-center gap-2">
-              <span
-                className={`inline-block w-2 h-2 rounded-full ${
-                  status.enabled ? "bg-green-500" : "bg-gray-500"
-                }`}
-              />
-              <span className="text-sm">
-                {status.manuallyEnabled
-                  ? t("statusManuallyEnabled", "Manually enabled")
-                  : t("statusDisabled", "Disabled")}
-              </span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleToggle}
-            disabled={toggling}
-            className={`w-full py-2 px-4 rounded text-sm font-medium transition-colors cursor-pointer ${
-              status.enabled
-                ? "bg-red-600 hover:bg-red-700 text-white"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            {toggling
-              ? t("btnProcessing", "Processing...")
-              : status.enabled
-                ? t("btnDisable", "Disable this site")
-                : t("btnEnable", "Enable on this site")}
-          </button>
-        </div>
-      ) : status && pageMode === "auto" ? (
-        <div className="flex-1 flex flex-col">
-          <div className="mb-3">
-            <div className="text-xs text-gray-400 mb-1">
-              {t("currentSite", "Current Site")}
-            </div>
-            <div className="text-sm font-mono bg-gray-800 rounded px-2 py-1 truncate">
-              {status.hostname}
-            </div>
-          </div>
-          <div className="mb-4">
-            <div className="text-xs text-gray-400 mb-1">
-              {t("status", "Status")}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-sm">
-                {t("statusAutoEnabled", "Auto-enabled")}
-              </span>
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              {t("autoSiteHint", "This site is auto-whitelisted")}
-            </div>
-          </div>
-          <div className="text-xs text-gray-500 text-center mt-2">
-            {t("autoSiteRunning", "Service runs automatically on this site")}
-          </div>
-        </div>
-      ) : null}
-
+      {/* ── Footer hint ── */}
       {footerHint && (
-        <div className="mt-3 pt-3 border-t border-gray-700 text-xs text-gray-500 text-center">
+        <footer className="px-4 pb-4 pt-1 text-[11px] text-koodo-muted text-center leading-relaxed border-t border-koodo-border/60 mt-auto pt-3">
           {footerHint}
-        </div>
+        </footer>
       )}
     </div>
   );

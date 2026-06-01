@@ -3,6 +3,24 @@
 @theme {
     --animate-spin-slow: spin 20s linear infinite;
 
+    /* Koodo Reader brand (koodoreader.com) */
+    --color-koodo-cream: #f7f6f2;
+    --color-koodo-paper: #f2f0eb;
+    --color-koodo-ink: #1a1e26;
+    --color-koodo-muted: #6b7280;
+    --color-koodo-body: #5c5c5c;
+    --color-koodo-orange: #f28b30;
+    --color-koodo-orange-hover: #e07d28;
+    --color-koodo-surface: #ffffff;
+    --color-koodo-border: #e8e5df;
+    --color-koodo-success: #2d8a4e;
+    --color-koodo-danger: #c44b4b;
+    --color-koodo-danger-bg: #fdf0f0;
+
+    --radius-koodo-xl: 1rem;
+    --radius-koodo-2xl: 1.25rem;
+    --shadow-koodo-card: 0 1px 3px rgb(26 30 38 / 0.06), 0 4px 12px rgb(26 30 38 / 0.04);
+
     @keyframes spin {
         to {
             transform: rotate(360deg);
