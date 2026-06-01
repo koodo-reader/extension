@@ -70,5 +70,29 @@
   "errOperationFailed": {
     "message": "操作失败",
     "description": "通用操作失败错误"
+  },
+  "pageTitle": {
+    "message": "页面标题",
+    "description": "保存模式下当前页面标题标签"
+  },
+  "pageUrl": {
+    "message": "页面地址",
+    "description": "保存模式下当前页面 URL 标签"
+  },
+  "btnSave": {
+    "message": "保存到 Koodo Reader",
+    "description": "将页面 URL 导入 Koodo Reader 的按钮"
+  },
+  "saveFooterHint": {
+    "message": "将此页面保存到 Koodo Reader 桌面版阅读",
+    "description": "保存模式页脚提示"
+  },
+  "errCannotAccessPage": {
+    "message": "无法访问此页面",
+    "description": "扩展无法读取标签页时的错误"
+  },
+  "errNoAppVersion": {
+    "message": "此页面不是 Koodo Reader 网页应用",
+    "description": "无 appVersion 时尝试启用代理的错误"
   }
 }

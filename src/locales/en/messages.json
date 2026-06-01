@@ -70,5 +70,29 @@
   "errOperationFailed": {
     "message": "Operation failed",
     "description": "Generic operation failure error"
+  },
+  "pageTitle": {
+    "message": "Page title",
+    "description": "Label for the current page title in save mode"
+  },
+  "pageUrl": {
+    "message": "Page URL",
+    "description": "Label for the current page URL in save mode"
+  },
+  "btnSave": {
+    "message": "Save to Koodo Reader",
+    "description": "Button to import the page URL into Koodo Reader"
+  },
+  "saveFooterHint": {
+    "message": "Save this page to read in Koodo Reader desktop app",
+    "description": "Footer hint in save mode"
+  },
+  "errCannotAccessPage": {
+    "message": "Cannot access this page",
+    "description": "Error when the extension cannot read the tab"
+  },
+  "errNoAppVersion": {
+    "message": "This page is not a Koodo Reader web app",
+    "description": "Error when enabling proxy without appVersion"
   }
 }

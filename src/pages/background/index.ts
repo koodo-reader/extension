@@ -1,3 +1,5 @@
+import { checkAppVersionInPage } from "../../utils/appVersion";
+
 console.log("background script loaded");
 
 // ─── Site Management ─────────────────────────────────────────────────────────
@@ -22,15 +24,34 @@ function isAutoSite(hostname: string): boolean {
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   // Site enable/disable from popup
   if (request.type === "ENABLE_SITE") {
-    getEnabledSites()
-      .then(async (sites) => {
+    (async () => {
+      try {
+        if (request.tabId != null) {
+          const [result] = await chrome.scripting.executeScript({
+            target: { tabId: request.tabId },
+            func: checkAppVersionInPage,
+          });
+          if (!result?.result) {
+            sendResponse({
+              success: false,
+              error: "NO_APP_VERSION",
+            });
+            return;
+          }
+        }
+        const sites = await getEnabledSites();
         if (!sites.includes(request.hostname)) {
           sites.push(request.hostname);
           await chrome.storage.sync.set({ enabledSites: sites });
         }
         sendResponse({ success: true, enabled: true });
-      })
-      .catch((err) => sendResponse({ success: false, error: err.message }));
+      } catch (err) {
+        sendResponse({
+          success: false,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    })();
     return true; // keep channel open
   }
 
@@ -42,6 +63,25 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         sendResponse({ success: true, enabled: false });
       })
       .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
+  if (request.type === "OPEN_IMPORT_URL") {
+    (async () => {
+      try {
+        if (request.tabId == null) {
+          sendResponse({ success: false, error: "Missing tabId" });
+          return;
+        }
+        await chrome.tabs.update(request.tabId, { url: request.url });
+        sendResponse({ success: true });
+      } catch (err) {
+        sendResponse({
+          success: false,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    })();
     return true;
   }
 
