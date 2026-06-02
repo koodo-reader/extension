@@ -11,8 +11,6 @@
  * Only activates on auto-enabled or manually-enabled sites.  On other sites
  * the bridge stays silent and main-world.ts will not install interceptors.
  */
-import { hasAppVersion } from "../../utils/appVersion";
-
 export {};
 
 const NAMESPACE = "__KOODO_EXTENSION__";
@@ -67,7 +65,7 @@ if (isAutoSite(_hostname)) {
 } else {
   // Check whether this site is manually enabled
   chrome.storage.sync.get("enabledSites", ({ enabledSites }) => {
-    if ((enabledSites ?? []).includes(_hostname) && hasAppVersion()) {
+    if ((enabledSites ?? []).includes(_hostname)) {
       startBridge();
     }
   });
