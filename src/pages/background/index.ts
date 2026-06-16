@@ -2,6 +2,16 @@ import { checkAppVersionInPage } from "../../utils/appVersion";
 
 console.log("background script loaded");
 
+// ─── Chunked Transfer ────────────────────────────────────────────────────────
+
+/**
+ * Maximum size (in bytes) for a single Base64 response sent directly through
+ * chrome.runtime.sendMessage.  Responses larger than this are streamed via
+ * chrome.tabs.connect in 1 MB chunks to avoid hitting the 64 MiB message limit.
+ */
+const MAX_DIRECT_PAYLOAD = 50 * 1024 * 1024; // 50 MB
+const CHUNK_SIZE = 1024 * 1024; // 1 MB per chunk
+
 // ─── Site Management ─────────────────────────────────────────────────────────
 
 const AUTO_SITES = ["web.koodoreader.com", "web.koodoreader.cn"];
@@ -110,11 +120,61 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return true;
   }
 
-  // Forward fetch/XHR (existing logic)
+  // ── Forward fetch/XHR (with chunked transfer for large responses) ──────
+
   if (request.type !== "FORWARD_FETCH" && request.type !== "FORWARD_XHR") return;
 
+  const senderTabId = _sender.tab?.id;
+
   executeForward(request)
-    .then(sendResponse)
+    .then(async (result) => {
+      if (!result.success || !result.data || senderTabId == null) {
+        sendResponse(result);
+        return;
+      }
+
+      // Small response: send directly (existing flow)
+      if (result.data.length <= MAX_DIRECT_PAYLOAD) {
+        sendResponse(result);
+        return;
+      }
+
+      // ── Large response: stream in chunks via a port ───────────────────
+      const requestId = crypto.randomUUID();
+      const base64 = result.data;
+
+      // Split Base64 into chunks
+      const chunks: string[] = [];
+      for (let i = 0; i < base64.length; i += CHUNK_SIZE) {
+        chunks.push(base64.substring(i, i + CHUNK_SIZE));
+      }
+
+      // First, complete the sendMessage with metadata only
+      sendResponse({
+        success: true,
+        useChunked: true,
+        requestId,
+        totalChunks: chunks.length,
+        status: result.status,
+        statusText: result.statusText,
+        headers: result.headers,
+      });
+
+      // Then stream chunks via a long-lived port
+      try {
+        const port = chrome.tabs.connect(senderTabId, {
+          name: `chunked-${requestId}`,
+        });
+        for (let i = 0; i < chunks.length; i++) {
+          port.postMessage({ type: "chunk", index: i, data: chunks[i] });
+        }
+        port.postMessage({ type: "done", totalChunks: chunks.length });
+        // Small delay to ensure the last message is flushed
+        setTimeout(() => port.disconnect(), 100);
+      } catch (err) {
+        console.error("[koodo] failed to stream chunks via port:", err);
+      }
+    })
     .catch((err: Error) =>
       sendResponse({ success: false, error: err.message }),
     );
