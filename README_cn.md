@@ -3,13 +3,13 @@
 <div align="center">
 <img src="public/icon-128.png" alt="logo"/>
 <h1>Koodo Reader 扩展</h1>
-<p><strong>用于提升 Koodo Reader 阅读体验的浏览器扩展，</strong></p>
+<p><strong>为 Koodo Reader 提供网页剪藏与云存储支持的浏览器扩展。</strong></p>
 </div>
 
 ## 功能
 
-- **增强同步功能** — 在 Koodo Reader 网页版中支持使用 WebDAV, S3兼容进行同步
-- **增强导入功能** — 在 Koodo Reader 网页版中支持从 WebDAV, S3兼容导入图书
+- **剪藏网页文章** — 一键将任意网页文章剪藏到您的图书库中，用于稍后阅读。需要您已安装 [Koodo Reader 桌面版](https://koodoreader.com)，文章会以 HTML 文件的格式保存到您的图书库中。
+- **解决网页限制** — 由于 WebDAV、S3 兼容存储的限制，您可能无法在浏览器中通过这些数据源同步或导入图书。安装此浏览器扩展后，可在 Koodo Reader 网页版中绕过这些限制。
 
 ## 快速开始
 
@@ -45,14 +45,14 @@ npm run build:firefox
 **Chrome**
 
 1. 访问 `chrome://extensions`
-2. 开启"开发者模式"
-3. 点击"加载已解压的扩展程序"
+2. 开启「开发者模式」
+3. 点击「加载已解压的扩展程序」
 4. 选择 `dist_chrome` 目录
 
 **Firefox**
 
 1. 访问 `about:debugging#/runtime/this-firefox`
-2. 点击"临时加载附加组件"
+2. 点击「临时加载附加组件」
 3. 选择 `dist_firefox` 目录内的任意文件
 
 ## 技术栈
