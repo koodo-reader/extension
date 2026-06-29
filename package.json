@@ -1,6 +1,6 @@
 {
   "name": "koodo-reader-extension",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "A web extension that enhances the reading experience for Koodo Reader.",
   "license": "AGPL-3.0-only",
   "repository": {
