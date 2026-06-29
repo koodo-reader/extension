@@ -284,7 +284,12 @@ function initMainWorld(): void {
     if (isBlacklisted(url)) return _originalFetch(...args);
 
     // Serialise request headers
+    // When input is a Request object, its headers (e.g. AWS signature) must be
+    // read first; init.headers are merged on top so they win on conflict.
     const reqHeaders: Record<string, string> = {};
+    if (input instanceof Request) {
+      input.headers.forEach((v, k) => (reqHeaders[k] = v));
+    }
     const rawHeaders = init.headers;
     if (rawHeaders instanceof Headers) {
       rawHeaders.forEach((v, k) => (reqHeaders[k] = v));
@@ -296,16 +301,28 @@ function initMainWorld(): void {
       Object.assign(reqHeaders, rawHeaders);
     }
 
+    // When input is a Request object, fall back to its method/body if init does
+    // not supply them (AWS SDK v3 puts everything on the Request object).
+    const effectiveMethod =
+      init.method ?? (input instanceof Request ? input.method : "GET");
+
+    // ReadableStream cannot cross the JSON channel — read it as ArrayBuffer first.
+    // This also ensures content-length stays consistent with what AWS SDK signed.
+    let rawBody: BodyInit | null | undefined;
+    if (init.body !== undefined) {
+      rawBody = init.body as BodyInit | null | undefined;
+    } else if (input instanceof Request && input.body !== null) {
+      rawBody = await input.clone().arrayBuffer();
+    }
+
     // Serialise request body
-    const { bodyEncoding, body, formEntries } = await serializeBody(
-      init.body as BodyInit | null | undefined,
-    );
+    const { bodyEncoding, body, formEntries } = await serializeBody(rawBody);
 
     try {
       const res = await forwardRequest({
         type: "FORWARD_FETCH",
         url,
-        method: init.method ?? "GET",
+        method: effectiveMethod,
         headers: reqHeaders,
         bodyEncoding,
         body,
