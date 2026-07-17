@@ -82,6 +82,32 @@ async function refreshBadge(): Promise<void> {
   }
 }
 
+/** Reverse of originToPattern: recover an origin from a match pattern. */
+function patternToOrigin(pattern: string): string | null {
+  // Only concrete origins (e.g. "https://host:port/*") round-trip back to a
+  // single origin; wildcard patterns are ignored.
+  const match = pattern.match(/^(https?:\/\/[^/*]+)\/\*$/);
+  if (!match) return null;
+  try {
+    return new URL(match[1]).origin;
+  } catch {
+    return null;
+  }
+}
+
+// The popup is torn down by Chrome while the permissions dialog is open, so the
+// popup's post-grant callback may never fire. Listen for grants here and clean
+// up the pending list + badge from the service worker instead.
+chrome.permissions.onAdded.addListener((permissions) => {
+  const origins = (permissions.origins ?? [])
+    .map(patternToOrigin)
+    .filter((o): o is string => o !== null);
+  if (origins.length === 0) return;
+  Promise.all(origins.map(removePendingHost))
+    .then(refreshBadge)
+    .catch(() => {});
+});
+
 // ─── External Message Bridge (from the Koodo Reader web app) ─────────────────
 //
 // The web app runs on *.koodoreader.{com,cn} (declared in externally_connectable)

@@ -466,30 +466,28 @@ export default function Popup() {
   // Request host permission for a pending storage origin. Must run inside the
   // click handler's user-gesture context — chrome.permissions.request throws
   // when called from a non-user-input chain.
-  const handleGrant = async (origin: string) => {
+  //
+  // NOTE: Chrome tears the popup down while the permissions dialog is open, so
+  // the code after `request` may never run. The service worker listens for
+  // chrome.permissions.onAdded and cleans up storage + badge from its side;
+  // the optimistic local update here only covers the rare case where the popup
+  // survives (e.g. the user dismisses the dialog without deciding).
+  const handleGrant = (origin: string) => {
     if (granting) return;
     setGranting(origin);
     setError(null);
-    try {
-      const granted = await chrome.permissions.request({
-        origins: [origin + "/*"],
-      });
-      if (granted) {
-        await new Promise<void>((resolve) => {
-          chrome.runtime.sendMessage(
-            { type: "REMOVE_PENDING_HOST", origin },
-            () => resolve(),
-          );
-        });
-        setPendingHosts((prev) => prev.filter((h) => h !== origin));
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : t("errOperationFailed", "Operation failed"),
-      );
-    } finally {
-      setGranting(null);
-    }
+    chrome.permissions.request(
+      { origins: [origin + "/*"] },
+      (granted) => {
+        setGranting(null);
+        if (granted) {
+          // Best-effort: ask the service worker to remove it. If this never
+          // arrives (popup already torn down), onAdded still handles it.
+          chrome.runtime.sendMessage({ type: "REMOVE_PENDING_HOST", origin });
+          setPendingHosts((prev) => prev.filter((h) => h !== origin));
+        }
+      },
+    );
   };
 
   const footerHint =
