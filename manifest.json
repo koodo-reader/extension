@@ -16,12 +16,14 @@
   },
   "permissions": [
     "activeTab",
-    "declarativeNetRequest",
     "declarativeNetRequestWithHostAccess",
     "scripting",
     "storage"
   ],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "https://*.koodoreader.com/*",
+    "https://*.koodoreader.cn/*"
+  ],
   "declarative_net_request": {
     "rule_resources": [
       {
@@ -31,15 +33,18 @@
       }
     ]
   },
+  "externally_connectable": {
+    "matches": ["https://*.koodoreader.com/*", "https://*.koodoreader.cn/*"]
+  },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["https://*.koodoreader.com/*", "https://*.koodoreader.cn/*"],
       "run_at": "document_start",
       "world": "MAIN",
       "js": ["src/pages/content/main-world.ts"]
     },
     {
-      "matches": ["<all_urls>"],
+      "matches": ["https://*.koodoreader.com/*", "https://*.koodoreader.cn/*"],
       "run_at": "document_start",
       "js": ["src/pages/content/index.tsx"],
       "css": ["contentStyle.css"]
@@ -48,7 +53,7 @@
   "web_accessible_resources": [
     {
       "resources": ["contentStyle.css", "icon-128.png", "icon-32.png"],
-      "matches": []
+      "matches": ["https://*.koodoreader.com/*", "https://*.koodoreader.cn/*"]
     }
   ]
 }
