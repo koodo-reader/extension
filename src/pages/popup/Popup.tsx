@@ -139,6 +139,25 @@ function IconAlert({ size = 18 }: { size?: number }) {
   );
 }
 
+function IconShield({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
+
 // ─── Primitive UI components ──────────────────────────────────────────────────
 
 type IconBoxVariant = "dark" | "muted";
@@ -275,6 +294,8 @@ export default function Popup() {
   const [toggling, setToggling] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingHosts, setPendingHosts] = useState<string[]>([]);
+  const [granting, setGranting] = useState<string | null>(null);
 
   useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
@@ -331,6 +352,14 @@ export default function Popup() {
             }
           },
         );
+      });
+
+      // Pending host authorizations are independent of the current tab's mode;
+      // load them in parallel so the badge card shows immediately.
+      chrome.runtime.sendMessage({ type: "GET_PENDING_HOSTS" }, (response) => {
+        if (response?.success && Array.isArray(response.pendingHosts)) {
+          setPendingHosts(response.pendingHosts);
+        }
       });
 
       try {
@@ -434,6 +463,35 @@ export default function Popup() {
     );
   };
 
+  // Request host permission for a pending storage origin. Must run inside the
+  // click handler's user-gesture context — chrome.permissions.request throws
+  // when called from a non-user-input chain.
+  const handleGrant = async (origin: string) => {
+    if (granting) return;
+    setGranting(origin);
+    setError(null);
+    try {
+      const granted = await chrome.permissions.request({
+        origins: [origin + "/*"],
+      });
+      if (granted) {
+        await new Promise<void>((resolve) => {
+          chrome.runtime.sendMessage(
+            { type: "REMOVE_PENDING_HOST", origin },
+            () => resolve(),
+          );
+        });
+        setPendingHosts((prev) => prev.filter((h) => h !== origin));
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : t("errOperationFailed", "Operation failed"),
+      );
+    } finally {
+      setGranting(null);
+    }
+  };
+
   const footerHint =
     pageMode === "save"
       ? t(
@@ -448,6 +506,47 @@ export default function Popup() {
     <div className="flex flex-col bg-app-cream text-app-ink rounded-2xl overflow-hidden">
       {/* ── Content ── */}
       <div className="flex-1 flex flex-col p-4 gap-3">
+        {pendingHosts.length > 0 && (
+          <Card>
+            <CardHeader
+              icon={
+                <IconBox variant="dark">
+                  <IconShield />
+                </IconBox>
+              }
+              title={t("pendingHostsTitle", "Pending Authorization")}
+              subtitle={t(
+                "pendingHostsHint",
+                "Grant access to forward requests to these storage hosts",
+              )}
+            />
+            <div className="space-y-2">
+              {pendingHosts.map((origin) => (
+                <div
+                  key={origin}
+                  className="flex items-center gap-2 bg-app-paper/60 border border-app-border rounded-xl px-3 py-2"
+                >
+                  <span
+                    className="flex-1 min-w-0 font-mono text-[11px] text-app-body break-all"
+                    title={origin}
+                  >
+                    {origin}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleGrant(origin)}
+                    disabled={granting !== null}
+                    className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-app-ink text-white hover:bg-app-ink/90 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {granting === origin
+                      ? t("btnGranting", "Authorizing...")
+                      : t("btnGrant", "Authorize")}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
         {loading ? (
           /* Loading */
           <div className="flex flex-col items-center justify-center gap-3 py-12">

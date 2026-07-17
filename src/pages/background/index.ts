@@ -2,6 +2,9 @@ import { checkAppVersionInPage } from "../../utils/appVersion";
 
 console.log("background script loaded");
 
+// Restore the badge on startup (the service worker may have been evicted).
+refreshBadge();
+
 // ─── Site Management ─────────────────────────────────────────────────────────
 
 const AUTO_SITES = ["web.koodoreader.com", "web.koodoreader.cn"];
@@ -11,6 +14,99 @@ async function getEnabledSites(): Promise<string[]> {
   const { enabledSites } = await chrome.storage.sync.get("enabledSites");
   return enabledSites ?? [];
 }
+
+// ─── Pending Host Authorization ───────────────────────────────────────────────
+//
+// User-configured WebDAV/S3 hosts that the extension has been asked to forward
+// to but does not yet have host permission for. Stored as normalized origins
+// (e.g. "https://nas.example.com:5005"). The popup lets the user grant each
+// origin via chrome.permissions.request (must run in a user-gesture context).
+
+const PENDING_HOSTS_KEY = "pendingHosts";
+
+/** Normalize a raw URL string into a web origin (scheme://host[:port]). */
+function normalizeOrigin(raw: string): string | null {
+  try {
+    const u = new URL(raw);
+    if (u.origin === "null") return null;
+    return u.origin;
+  } catch {
+    return null;
+  }
+}
+
+/** Convert an origin into the match pattern chrome.permissions expects. */
+function originToPattern(origin: string): string {
+  return origin + "/*";
+}
+
+async function getPendingHosts(): Promise<string[]> {
+  const { pendingHosts } = await chrome.storage.sync.get(PENDING_HOSTS_KEY);
+  return pendingHosts ?? [];
+}
+
+async function setPendingHosts(list: string[]): Promise<void> {
+  await chrome.storage.sync.set({ [PENDING_HOSTS_KEY]: list });
+}
+
+async function addPendingHost(origin: string): Promise<void> {
+  const list = await getPendingHosts();
+  if (!list.includes(origin)) {
+    list.push(origin);
+    await setPendingHosts(list);
+  }
+}
+
+async function removePendingHost(origin: string): Promise<void> {
+  const list = (await getPendingHosts()).filter((h) => h !== origin);
+  await setPendingHosts(list);
+}
+
+/** True when the extension already holds host permission for this origin. */
+function hasHostPermission(origin: string): Promise<boolean> {
+  return chrome.permissions.contains({ origins: [originToPattern(origin)] });
+}
+
+/** Refresh the toolbar badge to reflect the pending-host count. */
+async function refreshBadge(): Promise<void> {
+  try {
+    const count = (await getPendingHosts()).length;
+    if (count > 0) {
+      await chrome.action.setBadgeText({ text: String(count) });
+      await chrome.action.setBadgeBackgroundColor({ color: "#e53935" });
+    } else {
+      await chrome.action.setBadgeText({ text: "" });
+    }
+  } catch {
+    // Action API may be unavailable in some contexts (e.g. Firefox); ignore.
+  }
+}
+
+// ─── External Message Bridge (from the Koodo Reader web app) ─────────────────
+//
+// The web app runs on *.koodoreader.{com,cn} (declared in externally_connectable)
+// and asks the extension to authorize a user-configured storage host by sending
+// { type: "REQUEST_NEW_HOST", origin } via chrome.runtime.sendMessage(extensionId).
+chrome.runtime.onMessageExternal.addListener(
+  (message, _sender, sendResponse) => {
+    if (message?.type !== "REQUEST_NEW_HOST") return false;
+    (async () => {
+      const origin = normalizeOrigin(message.origin);
+      if (!origin) {
+        sendResponse({ success: false, error: "INVALID_ORIGIN" });
+        return;
+      }
+      if (await hasHostPermission(origin)) {
+        sendResponse({ success: true, status: "already_granted" });
+        return;
+      }
+      await addPendingHost(origin);
+      await refreshBadge();
+      sendResponse({ success: true, status: "pending" });
+    })();
+    return true; // keep channel open for async sendResponse
+  },
+);
 
 /** Check if a hostname is auto-enabled. */
 function isAutoSite(hostname: string): boolean {
@@ -110,14 +206,53 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return true;
   }
 
+  // Pending host authorization (queried/managed by the popup)
+  if (request.type === "GET_PENDING_HOSTS") {
+    getPendingHosts()
+      .then((pendingHosts) => sendResponse({ success: true, pendingHosts }))
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
+  if (request.type === "REMOVE_PENDING_HOST") {
+    removePendingHost(request.origin)
+      .then(() => refreshBadge())
+      .then(() => sendResponse({ success: true }))
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
+  if (request.type === "CHECK_HOST_PERMISSION") {
+    const origin = normalizeOrigin(request.origin);
+    if (!origin) {
+      sendResponse({ success: false, error: "INVALID_ORIGIN" });
+      return true;
+    }
+    hasHostPermission(origin)
+      .then((granted) => sendResponse({ success: true, granted }))
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
   // Forward fetch/XHR (existing logic)
   if (request.type !== "FORWARD_FETCH" && request.type !== "FORWARD_XHR") return;
 
   executeForward(request)
     .then(sendResponse)
-    .catch((err: Error) =>
-      sendResponse({ success: false, error: err.message }),
-    );
+    .catch((err: Error) => {
+      // Fallback: if the forward fails and we lack host permission for the
+      // target origin, surface it to the user as a pending authorization
+      // request so they can grant it from the popup.
+      const origin = normalizeOrigin(request.url);
+      if (origin) {
+        hasHostPermission(origin).then((granted) => {
+          if (!granted) {
+            addPendingHost(origin).then(refreshBadge);
+          }
+        });
+      }
+      sendResponse({ success: false, error: err.message });
+    });
   return true;
 });
 

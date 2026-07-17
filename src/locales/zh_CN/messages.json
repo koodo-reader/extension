@@ -118,5 +118,21 @@
   "forwardInactive": {
     "message": "网络转发未启用",
     "description": "转发禁用时的副标题"
+  },
+  "pendingHostsTitle": {
+    "message": "待授权域名",
+    "description": "待授权域名卡片标题"
+  },
+  "pendingHostsHint": {
+    "message": "授权后扩展才能转发请求到这些存储域名",
+    "description": "待授权域名卡片副标题"
+  },
+  "btnGrant": {
+    "message": "授权",
+    "description": "为待授权域名授予 host 权限的按钮文本"
+  },
+  "btnGranting": {
+    "message": "授权中...",
+    "description": "host 权限请求进行中的按钮文本"
   }
 }

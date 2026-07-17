@@ -118,5 +118,21 @@
   "forwardInactive": {
     "message": "Network forward is disabled",
     "description": "Subtitle when forward is disabled"
+  },
+  "pendingHostsTitle": {
+    "message": "Pending Authorization",
+    "description": "Title for the pending host authorization card"
+  },
+  "pendingHostsHint": {
+    "message": "Grant access to forward requests to these storage hosts",
+    "description": "Subtitle explaining the pending hosts card"
+  },
+  "btnGrant": {
+    "message": "Authorize",
+    "description": "Button text to grant host permission for a pending origin"
+  },
+  "btnGranting": {
+    "message": "Authorizing...",
+    "description": "Button text while a host permission request is in progress"
   }
 }

@@ -24,6 +24,10 @@
     "https://*.koodoreader.com/*",
     "https://*.koodoreader.cn/*"
   ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
   "declarative_net_request": {
     "rule_resources": [
       {
