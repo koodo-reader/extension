@@ -4,7 +4,7 @@
     "description": "Extension name"
   },
   "extDescription": {
-    "message": "A web extension that enhances the reading experience for Koodo Reader.",
+    "message": "Supports web clipping and enables synchronization and book import from WebDAV and Object Storage for Koodo Reader.",
     "description": "Extension description"
   },
   "currentSite": {

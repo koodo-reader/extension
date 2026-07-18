@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Koodo Reader",
-  "description": "This is a web extension that enhances the reading experience for Koodo Reader.",
+  "description": "Supports web clipping and enables synchronization and book import from WebDAV and Object Storage for Koodo Reader.",
   "action": {
     "default_popup": "src/pages/popup/index.html",
     "default_icon": {
