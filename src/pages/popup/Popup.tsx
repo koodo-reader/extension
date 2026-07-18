@@ -10,20 +10,13 @@ function t(key: string, fallback: string): string {
   }
 }
 
-type SiteStatus = {
-  hostname: string;
-  autoSite: boolean;
-  manuallyEnabled: boolean;
-  enabled: boolean;
-};
-
 type TabInfo = {
   id: number;
   title: string;
   url: string;
 };
 
-type PageMode = "auto" | "forward" | "save";
+type PageMode = "forward" | "save";
 
 function getHostname(url: string): string {
   try {
@@ -206,33 +199,6 @@ function PrimaryButton({
   );
 }
 
-function OutlineButton({
-  children,
-  onClick,
-  disabled,
-  variant = "dark",
-  icon,
-}: {
-  children: ReactNode;
-  onClick?: () => void;
-  disabled?: boolean;
-  variant?: "dark";
-  icon?: ReactNode;
-}) {
-  const styles = "border-app-border text-app-ink hover:bg-app-paper";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`w-full py-2.5 px-5 rounded-full text-sm font-medium bg-app-surface border active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${styles}`}
-    >
-      {icon && <span className="shrink-0">{icon}</span>}
-      {children}
-    </button>
-  );
-}
-
 function Card({
   children,
   className = "",
@@ -287,11 +253,9 @@ function CardHeader({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function Popup() {
-  const [status, setStatus] = useState<SiteStatus | null>(null);
   const [tabInfo, setTabInfo] = useState<TabInfo | null>(null);
   const [pageMode, setPageMode] = useState<PageMode | null>(null);
   const [loading, setLoading] = useState(true);
-  const [toggling, setToggling] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingHosts, setPendingHosts] = useState<string[]>([]);
@@ -337,23 +301,6 @@ export default function Popup() {
         url: pageUrl,
       });
 
-      const statusPromise = new Promise<SiteStatus>((resolve, reject) => {
-        chrome.runtime.sendMessage(
-          { type: "GET_SITE_STATUS", hostname },
-          (response) => {
-            if (response?.success) {
-              resolve({ hostname, ...response });
-            } else {
-              reject(
-                new Error(
-                  response?.error ?? t("errGetStatus", "Failed to get status"),
-                ),
-              );
-            }
-          },
-        );
-      });
-
       // Pending host authorizations are independent of the current tab's mode;
       // load them in parallel so the badge card shows immediately.
       chrome.runtime.sendMessage({ type: "GET_PENDING_HOSTS" }, (response) => {
@@ -362,87 +309,16 @@ export default function Popup() {
         }
       });
 
-      try {
-        const siteStatus = await statusPromise;
-        setStatus(siteStatus);
-
-        if (siteStatus.autoSite) {
-          setPageMode("auto");
-          setLoading(false);
-          return;
-        }
-
-        if (!isHttpUrl(pageUrl)) {
-          setError(t("errCannotAccessPage", "Cannot access this page"));
-          setLoading(false);
-          return;
-        }
-
-        setPageMode(hasAppVersion ? "forward" : "save");
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : t("errGetStatus", "Failed to get status"),
-        );
+      if (!isHttpUrl(pageUrl)) {
+        setError(t("errCannotAccessPage", "Cannot access this page"));
+        setLoading(false);
+        return;
       }
+
+      setPageMode(hasAppVersion ? "forward" : "save");
       setLoading(false);
     });
   }, []);
-
-  const handleToggle = async () => {
-    if (!status) return;
-    setToggling(true);
-    setError(null);
-
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tab = tabs[0];
-    if (!tab?.id) {
-      setError(t("errNoTab", "Unable to get current tab"));
-      setToggling(false);
-      return;
-    }
-
-    const reloadTab = () => chrome.tabs.reload(tab.id!);
-
-    if (status.enabled && !status.autoSite) {
-      chrome.runtime.sendMessage(
-        { type: "DISABLE_SITE", hostname: status.hostname },
-        (response) => {
-          if (response?.success) {
-            setStatus({ ...status, manuallyEnabled: false, enabled: false });
-            reloadTab();
-          } else {
-            setError(
-              response?.error ?? t("errOperationFailed", "Operation failed"),
-            );
-          }
-          setToggling(false);
-        },
-      );
-    } else if (!status.enabled) {
-      chrome.runtime.sendMessage(
-        { type: "ENABLE_SITE", hostname: status.hostname, tabId: tab.id },
-        (response) => {
-          if (response?.success) {
-            setStatus({ ...status, manuallyEnabled: true, enabled: true });
-            reloadTab();
-          } else if (response?.error === "NO_APP_VERSION") {
-            setError(
-              t("errNoAppVersion", "This page is not a Koodo Reader web app"),
-            );
-          } else {
-            setError(
-              response?.error ?? t("errOperationFailed", "Operation failed"),
-            );
-          }
-          setToggling(false);
-        },
-      );
-    } else {
-      setToggling(false);
-    }
-  };
 
   const handleSave = () => {
     if (!tabInfo || saving) return;
@@ -497,7 +373,10 @@ export default function Popup() {
           "Save this page to read in Koodo Reader desktop app",
         )
       : pageMode === "forward"
-        ? t("footerHint", "Other sites need to be manually enabled")
+        ? t(
+            "forwardActiveHint",
+            "Network forward is active on this Koodo Reader web app",
+          )
         : null;
 
   return (
@@ -610,92 +489,31 @@ export default function Popup() {
                 : t("btnSave", "Save to Koodo Reader")}
             </PrimaryButton>
           </>
-        ) : status && pageMode === "forward" ? (
-          /* Forward mode */
-          <>
-            <Card>
-              <CardHeader
-                icon={
-                  <IconBox variant={status.enabled ? "dark" : "muted"}>
-                    <IconZap />
-                  </IconBox>
-                }
-                title={t("forwardTitle", "Forward Mode")}
-                subtitle={
-                  status.enabled
-                    ? t("forwardActive", "Network forward is active")
-                    : t("forwardInactive", "Network forward is disabled")
-                }
-              />
-              <div className="space-y-3">
-                <MetaRow label={t("currentSite", "Current Site")}>
-                  <span className="font-mono text-[11px] text-app-body">
-                    {status.hostname}
-                  </span>
-                </MetaRow>
-                <div className="flex items-center gap-2 px-1">
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      status.enabled
-                        ? "bg-app-ink border border-app-ink"
-                        : "bg-app-muted/40"
-                    }`}
-                  />
-                  <span className="text-xs text-app-body">
-                    {status.manuallyEnabled
-                      ? t("statusManuallyEnabled", "Manually enabled")
-                      : t("statusDisabled", "Disabled")}
-                  </span>
-                </div>
-              </div>
-            </Card>
-            {status.enabled ? (
-              <OutlineButton
-                onClick={handleToggle}
-                disabled={toggling}
-                variant="dark"
-              >
-                {toggling
-                  ? t("btnProcessing", "Processing...")
-                  : t("btnDisable", "Disable this site")}
-              </OutlineButton>
-            ) : (
-              <PrimaryButton
-                onClick={handleToggle}
-                disabled={toggling}
-                icon={<IconZap size={15} />}
-              >
-                {toggling
-                  ? t("btnProcessing", "Processing...")
-                  : t("btnEnable", "Enable on this site")}
-              </PrimaryButton>
-            )}
-          </>
-        ) : status && pageMode === "auto" ? (
-          /* Auto mode */
+        ) : pageMode === "forward" && tabInfo ? (
+          /* Forward mode — the page is a Koodo Reader web app, forward is active */
           <>
             <Card>
               <CardHeader
                 icon={
                   <IconBox variant="dark">
-                    <IconCheck />
+                    <IconZap />
                   </IconBox>
                 }
-                title={t("statusAutoEnabled", "Auto-enabled")}
-                subtitle={t("autoSiteHint", "This site is auto-whitelisted")}
+                title={t("forwardTitle", "Forward Mode")}
+                subtitle={t("forwardActive", "Network forward is active")}
               />
               <MetaRow label={t("currentSite", "Current Site")}>
-                <span className="font-mono text-[11px] text-app-body">
-                  {status.hostname}
+                <span className="font-mono text-[11px] text-app-body break-all">
+                  {tabInfo.url}
                 </span>
               </MetaRow>
             </Card>
             <Card className="flex items-center gap-3">
-              <IconZap />
+              <IconCheck />
               <p className="text-xs text-app-body leading-relaxed">
                 {t(
-                  "autoSiteRunning",
-                  "Service runs automatically on this site",
+                  "forwardRunning",
+                  "Network forward runs automatically on this site",
                 )}
               </p>
             </Card>

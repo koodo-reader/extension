@@ -1,17 +1,5 @@
-import { checkAppVersionInPage } from "../../utils/appVersion";
-
 // Restore the badge on startup (the service worker may have been evicted).
 refreshBadge();
-
-// ─── Site Management ─────────────────────────────────────────────────────────
-
-const AUTO_SITES = ["web.koodoreader.com", "web.koodoreader.cn"];
-
-/** Get the set of manually enabled sites from storage. */
-async function getEnabledSites(): Promise<string[]> {
-  const { enabledSites } = await chrome.storage.sync.get("enabledSites");
-  return enabledSites ?? [];
-}
 
 // ─── Pending Host Authorization ───────────────────────────────────────────────
 //
@@ -132,60 +120,9 @@ chrome.runtime.onMessageExternal.addListener(
   },
 );
 
-/** Check if a hostname is auto-enabled. */
-function isAutoSite(hostname: string): boolean {
-  return AUTO_SITES.some(
-    (site) => hostname === site || hostname.endsWith("." + site),
-  );
-}
-
 // ─── Message Handlers ────────────────────────────────────────────────────────
 
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-  // Site enable/disable from popup
-  if (request.type === "ENABLE_SITE") {
-    (async () => {
-      try {
-        if (request.tabId != null) {
-          const [result] = await chrome.scripting.executeScript({
-            target: { tabId: request.tabId },
-            func: checkAppVersionInPage,
-          });
-          if (!result?.result) {
-            sendResponse({
-              success: false,
-              error: "NO_APP_VERSION",
-            });
-            return;
-          }
-        }
-        const sites = await getEnabledSites();
-        if (!sites.includes(request.hostname)) {
-          sites.push(request.hostname);
-          await chrome.storage.sync.set({ enabledSites: sites });
-        }
-        sendResponse({ success: true, enabled: true });
-      } catch (err) {
-        sendResponse({
-          success: false,
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
-    })();
-    return true; // keep channel open
-  }
-
-  if (request.type === "DISABLE_SITE") {
-    getEnabledSites()
-      .then(async (sites) => {
-        const filtered = sites.filter((s) => s !== request.hostname);
-        await chrome.storage.sync.set({ enabledSites: filtered });
-        sendResponse({ success: true, enabled: false });
-      })
-      .catch((err) => sendResponse({ success: false, error: err.message }));
-    return true;
-  }
-
   if (request.type === "OPEN_IMPORT_URL") {
     (async () => {
       try {
@@ -205,32 +142,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return true;
   }
 
-  if (request.type === "GET_SITE_STATUS") {
-    const autoSite = isAutoSite(request.hostname);
-    getEnabledSites()
-      .then((sites) => {
-        const manuallyEnabled = sites.includes(request.hostname);
-        sendResponse({
-          success: true,
-          autoSite,
-          manuallyEnabled,
-          enabled: autoSite || manuallyEnabled,
-        });
-      })
-      .catch((err) => sendResponse({ success: false, error: err.message }));
-    return true;
-  }
-
-  if (request.type === "GET_ENABLED_SITES") {
-    Promise.all([Promise.resolve(AUTO_SITES), getEnabledSites()])
-      .then(([autoSites, enabledSites]) => {
-        sendResponse({ success: true, autoSites, enabledSites });
-      })
-      .catch((err) => sendResponse({ success: false, error: err.message }));
-    return true;
-  }
-
-  // Pending host authorization (queried/managed by the popup)
   if (request.type === "GET_PENDING_HOSTS") {
     getPendingHosts()
       .then((pendingHosts) => sendResponse({ success: true, pendingHosts }))

@@ -8,19 +8,13 @@
  *
  * `chrome.runtime` is only available in this isolated world, not in MAIN.
  *
- * Only activates on auto-enabled or manually-enabled sites.  On other sites
- * the bridge stays silent and main-world.ts will not install interceptors.
+ * The bridge starts unconditionally; main-world.ts only emits requests once
+ * it detects the Koodo Reader web app (via the localStorage "appVersion"
+ * marker), so on non-app pages the bridge stays idle.
  */
 export {};
 
 const NAMESPACE = "__KOODO_EXTENSION__";
-const AUTO_SITES = ["web.koodoreader.com", "web.koodoreader.cn"];
-
-function isAutoSite(hostname: string): boolean {
-  return AUTO_SITES.some(
-    (site) => hostname === site || hostname.endsWith("." + site),
-  );
-}
 
 function startBridge(): void {
   window.addEventListener("message", (event) => {
@@ -41,23 +35,6 @@ function startBridge(): void {
       );
     });
   });
-
-  // Signal main-world.ts that the bridge is ready
-  window.postMessage({ __ns: NAMESPACE, __type: "BRIDGE_READY" }, "*");
 }
 
-// ─── Startup check ───────────────────────────────────────────────────────────
-
-const _hostname = location.host;
-
-if (isAutoSite(_hostname)) {
-  // Auto-enabled site – start immediately
-  startBridge();
-} else {
-  // Check whether this site is manually enabled
-  chrome.storage.sync.get("enabledSites", ({ enabledSites }) => {
-    if ((enabledSites ?? []).includes(_hostname)) {
-      startBridge();
-    }
-  });
-}
+startBridge();

@@ -9,67 +9,15 @@
   },
   "currentSite": {
     "message": "当前站点",
-    "description": "当前站点主机名标签"
-  },
-  "status": {
-    "message": "状态",
-    "description": "服务状态标签"
-  },
-  "statusAutoEnabled": {
-    "message": "自动启用",
-    "description": "站点自动启用时的状态文本"
-  },
-  "statusManuallyEnabled": {
-    "message": "已手动启用",
-    "description": "站点手动启用时的状态文本"
-  },
-  "statusDisabled": {
-    "message": "未启用",
-    "description": "站点禁用时的状态文本"
-  },
-  "autoSiteHint": {
-    "message": "该站点已自动加入白名单",
-    "description": "自动启用状态下显示的提示"
-  },
-  "btnDisable": {
-    "message": "禁用此站点",
-    "description": "禁用站点服务的按钮文本"
-  },
-  "btnEnable": {
-    "message": "在此站点启用",
-    "description": "启用站点服务的按钮文本"
-  },
-  "btnRefresh": {
-    "message": "刷新页面",
-    "description": "刷新当前页面的按钮文本"
+    "description": "当前站点地址标签"
   },
   "btnProcessing": {
     "message": "处理中...",
-    "description": "切换操作进行中的按钮文本"
-  },
-  "autoSiteRunning": {
-    "message": "服务在此站点上自动运行",
-    "description": "自动启用站点显示的信息"
-  },
-  "footerHint": {
-    "message": "其他站点需要手动点击启用",
-    "description": "页脚提示文本"
+    "description": "操作进行中的按钮文本"
   },
   "errNoPageInfo": {
     "message": "无法获取当前页面信息",
     "description": "标签页信息不可用时的错误"
-  },
-  "errGetStatus": {
-    "message": "获取状态失败",
-    "description": "获取站点状态失败时的错误"
-  },
-  "errNoTab": {
-    "message": "无法获取当前标签页",
-    "description": "找不到标签页 ID 时的错误"
-  },
-  "errOperationFailed": {
-    "message": "操作失败",
-    "description": "通用操作失败错误"
   },
   "pageTitle": {
     "message": "页面标题",
@@ -87,13 +35,13 @@
     "message": "将此页面保存到 Koodo Reader 桌面版阅读",
     "description": "保存模式页脚提示"
   },
+  "saveSubtitle": {
+    "message": "将此页面导入到您的书库",
+    "description": "保存模式卡片副标题"
+  },
   "errCannotAccessPage": {
     "message": "无法访问此页面",
     "description": "扩展无法读取标签页时的错误"
-  },
-  "errNoAppVersion": {
-    "message": "此页面不是 Koodo Reader 网页应用",
-    "description": "无 appVersion 时尝试启用转发的错误"
   },
   "loading": {
     "message": "加载中…",
@@ -103,21 +51,21 @@
     "message": "出错了",
     "description": "通用错误标题"
   },
-  "saveSubtitle": {
-    "message": "将此页面导入到您的书库",
-    "description": "保存模式卡片副标题"
-  },
   "forwardTitle": {
     "message": "转发模式",
     "description": "转发模式卡片标题"
   },
   "forwardActive": {
     "message": "网络转发已激活",
-    "description": "转发启用时的副标题"
+    "description": "转发激活时的副标题"
   },
-  "forwardInactive": {
-    "message": "网络转发未启用",
-    "description": "转发禁用时的副标题"
+  "forwardActiveHint": {
+    "message": "此 Koodo Reader 网页应用已激活网络转发",
+    "description": "转发模式页脚提示"
+  },
+  "forwardRunning": {
+    "message": "网络转发在此站点上自动运行",
+    "description": "Koodo Reader 网页应用显示的信息"
   },
   "pendingHostsTitle": {
     "message": "待授权域名",

@@ -12,8 +12,9 @@
  * The response body is always Base64-encoded by the background so that
  * binary files (images, PDFs, ZIPs …) survive the JSON message channel intact.
  *
- * Only installs fetch / XHR interceptors on auto-enabled or manually-enabled
- * sites.  On other sites this script is a no-op.
+ * Installs fetch / XHR interceptors only when the page is a Koodo Reader web
+ * app (detected via the localStorage "appVersion" marker).  On other pages
+ * this script is a no-op.
  */
 
 export {};
@@ -131,61 +132,12 @@ async function serializeBody(
 // ─── Site Check ─────────────────────────────────────────────────────────────
 
 /**
- * Auto-enabled hostnames mirrored from background/index.ts.
- * Checked synchronously — no message round-trip needed for these.
- */
-const AUTO_SITES = ["web.koodoreader.com", "web.koodoreader.cn"];
-
-function isAutoSite(hostname: string): boolean {
-  return AUTO_SITES.some(
-    (site) => hostname === site || hostname.endsWith("." + site),
-  );
-}
-
-/**
- * Synchronous cache populated once the background responds.
- * null = not yet received; after that, reads are instant.
- */
-let _enabledSitesCache: string[] | null = null;
-
-/** Fire-and-forget: fetch the enabled-sites list once at startup and cache it. */
-function fetchEnabledSites(): void {
-  const id = ++_reqId;
-  const payload = { type: "GET_ENABLED_SITES" };
-
-  function onMessage(event: MessageEvent) {
-    if (
-      event.source !== window ||
-      !event.data ||
-      event.data.__ns !== NAMESPACE ||
-      event.data.__type !== "RES" ||
-      event.data.__id !== id
-    )
-      return;
-    window.removeEventListener("message", onMessage);
-    const res = event.data.payload as {
-      success?: boolean;
-      enabledSites?: string[];
-    };
-    _enabledSitesCache = res?.enabledSites ?? [];
-  }
-
-  window.addEventListener("message", onMessage);
-  window.postMessage(
-    { __ns: NAMESPACE, __type: "REQ", __id: id, payload },
-    "*",
-  );
-}
-
-/**
- * Synchronously returns true if the current hostname is allowed to forward.
- * AUTO_SITES is always instant.  For manually-enabled sites the cache is
- * populated at script load and is ready before page JS fires real requests.
+ * Synchronously returns true if the current page is a Koodo Reader web app.
+ * Detected via the localStorage "appVersion" marker set by the web app.
  */
 function siteCheckPassed(): boolean {
-  const hostname = location.host;
-  if (isAutoSite(hostname)) return true;
-  return (_enabledSitesCache ?? []).includes(hostname);
+  const v = localStorage.getItem("appVersion");
+  return v !== null && v !== "";
 }
 
 // ─── postMessage Bridge ──────────────────────────────────────────────────────
@@ -256,9 +208,6 @@ function isBlacklisted(url: string): boolean {
  * Only called when the current site is confirmed as allowed (auto or manual).
  */
 function initMainWorld(): void {
-  // Fetch the manually-enabled sites list (fire-and-forget)
-  fetchEnabledSites();
-
   // ── Fetch Interceptor ──────────────────────────────────────────────
 
   const _originalFetch = window.fetch.bind(window);
@@ -516,31 +465,31 @@ function initMainWorld(): void {
 }
 
 // ─── Startup ─────────────────────────────────────────────────────────────────
+//
+// This script runs at document_start, before the page's own JS has had a
+// chance to write the "appVersion" marker into localStorage.  So we poll for
+// it: once the Koodo Reader web app sets the marker, we install the fetch/XHR
+// interceptors.  If the marker never appears (this page isn't the web app),
+// we give up after the timeout and stay inert.
 
-const _hostname = location.host;
+const APP_VERSION_POLL_INTERVAL_MS = 50;
+const APP_VERSION_POLL_TIMEOUT_MS = 10_000;
 
-if (isAutoSite(_hostname)) {
-  // Auto-enabled site – install interceptors immediately
-  initMainWorld();
-} else {
-  // Wait for the isolated-world bridge (index.tsx) to confirm this site is
-  // manually enabled.  The bridge checks chrome.storage.sync on startup.
-  function onBridgeReady(event: MessageEvent) {
-    if (
-      event.source !== window ||
-      !event.data ||
-      event.data.__ns !== NAMESPACE ||
-      event.data.__type !== "BRIDGE_READY"
-    )
-      return;
-    window.removeEventListener("message", onBridgeReady);
+function startWhenAppReady(): void {
+  if (siteCheckPassed()) {
     initMainWorld();
+    return;
   }
 
-  window.addEventListener("message", onBridgeReady);
-
-  // If the bridge never responds, this site is not enabled — clean up
-  setTimeout(() => {
-    window.removeEventListener("message", onBridgeReady);
-  }, 3000);
+  const deadline = Date.now() + APP_VERSION_POLL_TIMEOUT_MS;
+  const timer = setInterval(() => {
+    if (siteCheckPassed()) {
+      clearInterval(timer);
+      initMainWorld();
+    } else if (Date.now() > deadline) {
+      clearInterval(timer);
+    }
+  }, APP_VERSION_POLL_INTERVAL_MS);
 }
+
+startWhenAppReady();
