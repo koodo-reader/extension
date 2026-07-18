@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Koodo Reader",
+  "name": "Koodo Reader Web Clipper",
   "description": "Supports web clipping and enables synchronization and book import from WebDAV and Object Storage for Koodo Reader.",
   "action": {
     "default_popup": "src/pages/popup/index.html",

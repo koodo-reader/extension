@@ -390,3 +390,5 @@ $RECYCLE.BIN/
 
 #generated manifest
 public/manifest.json
+
+dist_chrome.zip

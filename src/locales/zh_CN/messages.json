@@ -1,10 +1,10 @@
 {
   "extName": {
-    "message": "Koodo Reader",
+    "message": "Koodo Reader 网页剪藏",
     "description": "扩展名称"
   },
   "extDescription": {
-    "message": "增强 Koodo Reader 阅读体验的浏览器扩展。",
+    "message": "支持网页剪藏和在网页版 Koodo Reader 中使用 WebDAV 和对象存储同步和导入图书",
     "description": "扩展描述"
   },
   "currentSite": {
