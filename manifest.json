@@ -50,6 +50,5 @@
       "resources": ["contentStyle.css", "icon-128.png", "icon-32.png"],
       "matches": ["https://*.koodoreader.com/*", "https://*.koodoreader.cn/*"]
     }
-  ],
-  "data_collection_permissions": { "none": true }
+  ]
 }
