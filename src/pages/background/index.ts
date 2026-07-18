@@ -1,7 +1,5 @@
 import { checkAppVersionInPage } from "../../utils/appVersion";
 
-console.log("background script loaded");
-
 // Restore the badge on startup (the service worker may have been evicted).
 refreshBadge();
 
@@ -261,7 +259,8 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   }
 
   // Forward fetch/XHR (existing logic)
-  if (request.type !== "FORWARD_FETCH" && request.type !== "FORWARD_XHR") return;
+  if (request.type !== "FORWARD_FETCH" && request.type !== "FORWARD_XHR")
+    return;
 
   executeForward(request)
     .then(sendResponse)

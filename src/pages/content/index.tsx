@@ -43,16 +43,7 @@ function startBridge(): void {
   });
 
   // Signal main-world.ts that the bridge is ready
-  window.postMessage(
-    { __ns: NAMESPACE, __type: "BRIDGE_READY" },
-    "*",
-  );
-
-  try {
-    console.log("[koodo-extension] isolated content script (bridge) loaded");
-  } catch (e) {
-    console.error(e);
-  }
+  window.postMessage({ __ns: NAMESPACE, __type: "BRIDGE_READY" }, "*");
 }
 
 // ─── Startup check ───────────────────────────────────────────────────────────
