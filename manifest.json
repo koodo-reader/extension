@@ -23,10 +23,7 @@
     "scripting",
     "storage"
   ],
-  "host_permissions": [
-    "https://*.koodoreader.com/*",
-    "https://*.koodoreader.cn/*"
-  ],
+  "host_permissions": [],
   "optional_host_permissions": ["https://*/*", "http://*/*"],
   "externally_connectable": {
     "matches": ["https://*.koodoreader.com/*", "https://*.koodoreader.cn/*"]
@@ -43,12 +40,6 @@
       "run_at": "document_start",
       "js": ["src/pages/content/index.tsx"],
       "css": []
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["icon-128.png", "icon-32.png"],
-      "matches": ["https://*.koodoreader.com/*", "https://*.koodoreader.cn/*"]
     }
   ]
 }
