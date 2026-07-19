@@ -20,7 +20,6 @@
   "permissions": [
     "activeTab",
     "declarativeNetRequestWithHostAccess",
-    "scripting",
     "storage"
   ],
   "host_permissions": [],

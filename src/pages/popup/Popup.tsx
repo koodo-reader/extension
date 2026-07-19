@@ -1,5 +1,4 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { readPageContextInTab } from "../../utils/pageContext";
 
 function t(key: string, fallback: string): string {
   try {
@@ -262,42 +261,21 @@ export default function Popup() {
   const [granting, setGranting] = useState<string | null>(null);
 
   useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs[0];
-      if (tab?.id == null) {
+      if (tab?.id == null || !tab.url) {
         setError(t("errNoPageInfo", "Unable to get current page info"));
         setLoading(false);
         return;
       }
 
-      let pageUrl: string;
-      let pageTitle: string;
-      let hasAppVersion: boolean;
+      const pageUrl = tab.url;
+      const pageTitle = tab.title || getHostname(pageUrl);
+      const hasAppVersion = pageTitle.includes("Koodo Reader");
 
-      try {
-        const [result] = await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: readPageContextInTab,
-        });
-        const ctx = result?.result;
-        if (!ctx?.url) {
-          setError(t("errNoPageInfo", "Unable to get current page info"));
-          setLoading(false);
-          return;
-        }
-        pageUrl = ctx.url;
-        pageTitle = ctx.title;
-        hasAppVersion = ctx.hasAppVersion;
-      } catch {
-        setError(t("errCannotAccessPage", "Cannot access this page"));
-        setLoading(false);
-        return;
-      }
-
-      const hostname = getHostname(pageUrl);
       setTabInfo({
         id: tab.id,
-        title: pageTitle || hostname,
+        title: pageTitle,
         url: pageUrl,
       });
 
