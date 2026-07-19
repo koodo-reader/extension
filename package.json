@@ -1,6 +1,6 @@
 {
   "name": "koodo-reader-extension",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Supports web clipping and enables synchronization and book import from WebDAV and Object Storage for Koodo Reader.",
   "license": "AGPL-3.0-only",
   "repository": {
