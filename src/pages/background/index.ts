@@ -9,6 +9,7 @@ refreshBadge();
 // origin via chrome.permissions.request (must run in a user-gesture context).
 
 const PENDING_HOSTS_KEY = "pendingHosts";
+const IGNORED_HOSTS_KEY = "ignoredHosts";
 
 /** Normalize a raw URL string into a web origin (scheme://host[:port]). */
 function normalizeOrigin(raw: string): string | null {
@@ -36,6 +37,8 @@ async function setPendingHosts(list: string[]): Promise<void> {
 }
 
 async function addPendingHost(origin: string): Promise<void> {
+  // Skip origins the user has explicitly ignored so they never resurface.
+  if ((await getIgnoredHosts()).includes(origin)) return;
   const list = await getPendingHosts();
   if (!list.includes(origin)) {
     list.push(origin);
@@ -46,6 +49,19 @@ async function addPendingHost(origin: string): Promise<void> {
 async function removePendingHost(origin: string): Promise<void> {
   const list = (await getPendingHosts()).filter((h) => h !== origin);
   await setPendingHosts(list);
+}
+
+async function getIgnoredHosts(): Promise<string[]> {
+  const { ignoredHosts } = await chrome.storage.sync.get(IGNORED_HOSTS_KEY);
+  return ignoredHosts ?? [];
+}
+
+async function addIgnoredHost(origin: string): Promise<void> {
+  const list = await getIgnoredHosts();
+  if (!list.includes(origin)) {
+    list.push(origin);
+    await chrome.storage.sync.set({ [IGNORED_HOSTS_KEY]: list });
+  }
 }
 
 /** True when the extension already holds host permission for this origin. */
@@ -151,6 +167,15 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
   if (request.type === "REMOVE_PENDING_HOST") {
     removePendingHost(request.origin)
+      .then(() => refreshBadge())
+      .then(() => sendResponse({ success: true }))
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
+  if (request.type === "IGNORE_HOST") {
+    removePendingHost(request.origin)
+      .then(() => addIgnoredHost(request.origin))
       .then(() => refreshBadge())
       .then(() => sendResponse({ success: true }))
       .catch((err) => sendResponse({ success: false, error: err.message }));

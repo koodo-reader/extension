@@ -82,5 +82,9 @@
   "btnGranting": {
     "message": "授权中...",
     "description": "host 权限请求进行中的按钮文本"
+  },
+  "btnIgnore": {
+    "message": "忽略",
+    "description": "忽略待授权域名、使其不再展示的按钮文本"
   }
 }

@@ -82,5 +82,9 @@
   "btnGranting": {
     "message": "Authorizing...",
     "description": "Button text while a host permission request is in progress"
+  },
+  "btnIgnore": {
+    "message": "Ignore",
+    "description": "Button text to dismiss a pending origin so it never shows again"
   }
 }
