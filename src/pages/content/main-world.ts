@@ -197,6 +197,15 @@ const FORWARD_BLACKLIST = [
   "koodoreader.cn",
   "960960.xyz",
   "chatwoot.com",
+  "pcloud.com",
+  "microsoft.com",
+  "115.com",
+  "alipan.com",
+  "baidu.com",
+  "yandex.net",
+  "googleapis.com",
+  "dropboxapi.com",
+  "box.com",
 ];
 
 /** Check whether a URL matches a blacklisted domain or any of its subdomains. */
