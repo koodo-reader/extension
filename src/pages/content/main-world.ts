@@ -43,6 +43,12 @@ type ForwardResponse = {
   statusText?: string;
   headers: Record<string, string>;
   error?: string;
+  /**
+   * Set by the background when it lacks host permission for the target
+   * origin: the main world should retry via the native fetch/XHR path
+   * instead of surfacing an error to the page.
+   */
+  fallback?: "native";
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -164,7 +170,11 @@ function forwardRequest(
       if (res.success) {
         resolve(res);
       } else {
-        reject(new TypeError(res.error ?? "Forward request failed"));
+        const err = new TypeError(res.error ?? "Forward request failed");
+        // Carry the background's fallback hint so the caller can retry via
+        // the native fetch/XHR path when host permission is missing.
+        (err as Error & { fallback?: "native" }).fallback = res.fallback;
+        reject(err);
       }
     }
 
@@ -292,6 +302,12 @@ function initMainWorld(): void {
         headers: res.headers,
       });
     } catch (err) {
+      // The background signals "native" when it lacks host permission for
+      // the target origin — fall back to a real fetch from the page so the
+      // request still goes through (subject to the page's normal CORS).
+      if ((err as Error & { fallback?: "native" }).fallback === "native") {
+        return _originalFetch(...args);
+      }
       // Do NOT fall back to the native fetch – that would send the request
       // from the page origin and trigger a CORS block.  Surface the error.
       throw err;
@@ -433,6 +449,14 @@ function initMainWorld(): void {
             this.onload(new ProgressEvent("load"));
         })
         .catch((err) => {
+          // The background signals "native" when it lacks host permission
+          // for the target origin — fall back to a real XHR from the page.
+          // open() and setRequestHeader() already ran against the native
+          // super instance, so we only need to send the original body.
+          if ((err as Error & { fallback?: "native" }).fallback === "native") {
+            super.send(body);
+            return;
+          }
           // Do NOT fall back to super.send() – that fires a real XHR from the
           // page origin and causes a CORS preflight failure.  Instead, dispatch
           // an error event so the caller receives a proper network error.

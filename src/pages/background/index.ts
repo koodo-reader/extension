@@ -173,20 +173,29 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.type !== "FORWARD_FETCH" && request.type !== "FORWARD_XHR")
     return;
 
-  executeForward(request)
-    .then(sendResponse)
-    .catch((err: Error) => {
-      // Fallback: if the forward fails and we lack host permission for the
-      // target origin, surface it to the user as a pending authorization
-      // request so they can grant it from the popup.
-      const origin = normalizeOrigin(request.url);
-      if (origin) {
-        hasHostPermission(origin).then((granted) => {
-          if (!granted) {
-            addPendingHost(origin).then(refreshBadge);
-          }
-        });
+  // Before forwarding, check that we hold host permission for the target
+  // origin. If not, record it as pending authorization and tell the main
+  // world to fall back to the native fetch/XHR path — the service worker
+  // fetch would be rejected anyway, and the page can still try directly
+  // (CORS permitting).
+  const origin = normalizeOrigin(request.url);
+  hasHostPermission(origin ?? "")
+    .then(async (granted) => {
+      if (granted) {
+        try {
+          sendResponse(await executeForward(request));
+        } catch (err: any) {
+          sendResponse({ success: false, error: err.message });
+        }
+        return;
       }
+      if (origin) {
+        await addPendingHost(origin);
+        await refreshBadge();
+      }
+      sendResponse({ success: false, fallback: "native" });
+    })
+    .catch((err: Error) => {
       sendResponse({ success: false, error: err.message });
     });
   return true;
