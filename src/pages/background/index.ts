@@ -4,12 +4,14 @@ refreshBadge();
 // ─── Pending Host Authorization ───────────────────────────────────────────────
 //
 // User-configured WebDAV/S3 hosts that the extension has been asked to forward
-// to but does not yet have host permission for. Stored as normalized origins
-// (e.g. "https://nas.example.com:5005"). The popup lets the user grant each
-// origin via chrome.permissions.request (must run in a user-gesture context).
+// to but does not yet have host permission for. Held as normalized origins
+// (e.g. "https://nas.example.com:5005") in memory only — the list is cleared
+// whenever the service worker is evicted, which is fine: the next request to
+// the host simply re-records it. The popup grants each origin via
+// chrome.permissions.request (must run in a user-gesture context).
 
-const PENDING_HOSTS_KEY = "pendingHosts";
-const IGNORED_HOSTS_KEY = "ignoredHosts";
+/** In-memory pending origins. Lost when the service worker is evicted. */
+const pendingHosts = new Set<string>();
 
 /** Normalize a raw URL string into a web origin (scheme://host[:port]). */
 function normalizeOrigin(raw: string): string | null {
@@ -27,41 +29,12 @@ function originToPattern(origin: string): string {
   return origin + "/*";
 }
 
-async function getPendingHosts(): Promise<string[]> {
-  const { pendingHosts } = await chrome.storage.sync.get(PENDING_HOSTS_KEY);
-  return pendingHosts ?? [];
+function addPendingHost(origin: string): void {
+  pendingHosts.add(origin);
 }
 
-async function setPendingHosts(list: string[]): Promise<void> {
-  await chrome.storage.sync.set({ [PENDING_HOSTS_KEY]: list });
-}
-
-async function addPendingHost(origin: string): Promise<void> {
-  // Skip origins the user has explicitly ignored so they never resurface.
-  if ((await getIgnoredHosts()).includes(origin)) return;
-  const list = await getPendingHosts();
-  if (!list.includes(origin)) {
-    list.push(origin);
-    await setPendingHosts(list);
-  }
-}
-
-async function removePendingHost(origin: string): Promise<void> {
-  const list = (await getPendingHosts()).filter((h) => h !== origin);
-  await setPendingHosts(list);
-}
-
-async function getIgnoredHosts(): Promise<string[]> {
-  const { ignoredHosts } = await chrome.storage.sync.get(IGNORED_HOSTS_KEY);
-  return ignoredHosts ?? [];
-}
-
-async function addIgnoredHost(origin: string): Promise<void> {
-  const list = await getIgnoredHosts();
-  if (!list.includes(origin)) {
-    list.push(origin);
-    await chrome.storage.sync.set({ [IGNORED_HOSTS_KEY]: list });
-  }
+function removePendingHost(origin: string): void {
+  pendingHosts.delete(origin);
 }
 
 /** True when the extension already holds host permission for this origin. */
@@ -72,7 +45,7 @@ function hasHostPermission(origin: string): Promise<boolean> {
 /** Refresh the toolbar badge to reflect the pending-host count. */
 async function refreshBadge(): Promise<void> {
   try {
-    const count = (await getPendingHosts()).length;
+    const count = pendingHosts.size;
     if (count > 0) {
       await chrome.action.setBadgeText({ text: String(count) });
       await chrome.action.setBadgeBackgroundColor({ color: "#e53935" });
@@ -105,9 +78,8 @@ chrome.permissions.onAdded.addListener((permissions) => {
     .map(patternToOrigin)
     .filter((o): o is string => o !== null);
   if (origins.length === 0) return;
-  Promise.all(origins.map(removePendingHost))
-    .then(refreshBadge)
-    .catch(() => {});
+  origins.forEach(removePendingHost);
+  refreshBadge().catch(() => {});
 });
 
 // ─── External Message Bridge (from the Koodo Reader web app) ─────────────────
@@ -128,7 +100,7 @@ chrome.runtime.onMessageExternal.addListener(
         sendResponse({ success: true, status: "already_granted" });
         return;
       }
-      await addPendingHost(origin);
+      addPendingHost(origin);
       await refreshBadge();
       sendResponse({ success: true, status: "pending" });
     })();
@@ -159,24 +131,13 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   }
 
   if (request.type === "GET_PENDING_HOSTS") {
-    getPendingHosts()
-      .then((pendingHosts) => sendResponse({ success: true, pendingHosts }))
-      .catch((err) => sendResponse({ success: false, error: err.message }));
+    sendResponse({ success: true, pendingHosts: Array.from(pendingHosts) });
     return true;
   }
 
   if (request.type === "REMOVE_PENDING_HOST") {
-    removePendingHost(request.origin)
-      .then(() => refreshBadge())
-      .then(() => sendResponse({ success: true }))
-      .catch((err) => sendResponse({ success: false, error: err.message }));
-    return true;
-  }
-
-  if (request.type === "IGNORE_HOST") {
-    removePendingHost(request.origin)
-      .then(() => addIgnoredHost(request.origin))
-      .then(() => refreshBadge())
+    removePendingHost(request.origin);
+    refreshBadge()
       .then(() => sendResponse({ success: true }))
       .catch((err) => sendResponse({ success: false, error: err.message }));
     return true;
@@ -215,7 +176,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         return;
       }
       if (origin) {
-        await addPendingHost(origin);
+        addPendingHost(origin);
         await refreshBadge();
       }
       sendResponse({ success: false, fallback: "native" });

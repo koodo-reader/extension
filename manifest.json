@@ -18,8 +18,7 @@
     "128": "icon-128.png"
   },
   "permissions": [
-    "activeTab",
-    "storage"
+    "activeTab"
   ],
   "host_permissions": [],
   "optional_host_permissions": ["https://*/*", "http://*/*"],

@@ -28,7 +28,7 @@ The core architecture separates code across three isolated contexts:
 
 2. **Isolated world** (`src/pages/content/index.tsx`) — Runs in the extension's isolated context. Listens to `window.postMessage` from MAIN world and forwards to service worker via `chrome.runtime.sendMessage`. Also injects the MAIN world script.
 
-3. **Service worker** (`src/pages/background/index.ts`) — Handles `chrome.runtime.onMessage`. Manages per-site enable/disable state in `chrome.storage.sync`, performs the actual network forwarding for bypassing CORS/WebDAV limits, and responds to popup actions.
+3. **Service worker** (`src/pages/background/index.ts`) — Handles `chrome.runtime.onMessage`. Performs the actual network forwarding for bypassing CORS/WebDAV limits, tracks pending (not-yet-authorized) storage hosts in memory, and responds to popup actions.
 
 ### Key design decisions
 
@@ -36,7 +36,8 @@ The core architecture separates code across three isolated contexts:
 - **Forwarding blacklist**: Requests to `koodoreader.com` and `chatwoot.com` domains are never forwarded through the tunnel.
 - **Binary transfer**: Responses are Base64-encoded through the JSON message channel to safely carry binary data (e.g., ebook files).
 - **WebDAV auth**: URL credentials (user:password@host) are extracted and converted to `Authorization: Basic ...` headers.
-- **Popup** (`src/pages/popup/Popup.tsx`) — React UI for toggling extension on/off per site, saving articles, and managing state.
+- **Popup** (`src/pages/popup/Popup.tsx`) — React UI for saving articles and granting host permissions for pending storage origins.
+- **No persistent extension storage**: The extension no longer holds the `storage` permission. Pending authorization hosts live only in the service worker's memory and are lost when the worker is evicted — the next request to a host simply re-records it.
 
 ### Localization
 

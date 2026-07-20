@@ -344,11 +344,6 @@ export default function Popup() {
     );
   };
 
-  const handleIgnore = (origin: string) => {
-    chrome.runtime.sendMessage({ type: "IGNORE_HOST", origin });
-    setPendingHosts((prev) => prev.filter((h) => h !== origin));
-  };
-
   const footerHint =
     pageMode === "save"
       ? t(
@@ -392,14 +387,6 @@ export default function Popup() {
                   >
                     {origin}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => handleIgnore(origin)}
-                    disabled={granting !== null}
-                    className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-transparent text-app-muted border border-app-border hover:bg-app-paper hover:text-app-ink active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {t("btnIgnore", "Ignore")}
-                  </button>
                   <button
                     type="button"
                     onClick={() => handleGrant(origin)}
