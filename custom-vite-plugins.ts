@@ -19,6 +19,29 @@ export function stripDevIcons (isDev: boolean) {
   }
 }
 
+// plugin to drop the CRXJS internal build manifest (.vite/manifest.json) from
+// the output — it's an intermediate index Chrome never reads. CRXJS writes it
+// straight to disk (not via the bundle), so we both drop any matching bundle
+// entry and remove the directory after files are written.
+export function stripCrxViteManifest (): PluginOption {
+  return {
+    name: 'strip-crx-vite-manifest',
+    enforce: 'post',
+    generateBundle (_options, bundle) {
+      for (const key of Object.keys(bundle)) {
+        if (key.startsWith('.vite/')) {
+          delete bundle[key]
+        }
+      }
+    },
+    writeBundle (outputOptions) {
+      const outDir = outputOptions.dir
+      if (!outDir) return
+      fs.rmSync(resolve(outDir, '.vite'), { recursive: true, force: true })
+    }
+  }
+}
+
 // plugin to support i18n 
 export function crxI18n (options: { localize: boolean, src: string }): PluginOption {
   if (!options.localize) return null
