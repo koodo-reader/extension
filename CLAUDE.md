@@ -18,7 +18,7 @@ No test runner is configured. Lint is via ESLint 9 (`npx eslint .`).
 
 ## Architecture
 
-This is a **Manifest V3 browser extension** that extends Koodo Reader with web article clipping and WebDAV/S3 storage bypass. Built with Vite + CRXJS plugin, React 19, TypeScript, and Tailwind CSS 4.
+This is a **Manifest V3 browser extension** that extends Koodo Reader with web article clipping and WebDAV/S3 storage assist. Built with Vite + CRXJS plugin, React 19, TypeScript, and Tailwind CSS 4.
 
 ### Three-world message bridge
 
@@ -26,14 +26,14 @@ The core architecture separates code across three isolated contexts:
 
 1. **MAIN world** (`src/pages/content/main-world.ts`) — Runs in the page's JavaScript context. Intercepts `fetch` and `XHR` calls on enabled sites, serializes responses (including binary → Base64), and sends them via `window.postMessage`.
 
-2. **Isolated world** (`src/pages/content/index.tsx`) — Runs in the extension's isolated context. Listens to `window.postMessage` from MAIN world and forwards to service worker via `chrome.runtime.sendMessage`. Also injects the MAIN world script.
+2. **Isolated world** (`src/pages/content/index.tsx`) — Runs in the extension's isolated context. Listens to `window.postMessage` from MAIN world and passes messages to the service worker via `chrome.runtime.sendMessage`. Also injects the MAIN world script.
 
-3. **Service worker** (`src/pages/background/index.ts`) — Handles `chrome.runtime.onMessage`. Performs the actual network forwarding for bypassing CORS/WebDAV limits, tracks pending (not-yet-authorized) storage hosts in memory, and responds to popup actions.
+3. **Service worker** (`src/pages/background/index.ts`) — Handles `chrome.runtime.onMessage`. Performs the actual network assist for WebDAV/S3 requests that the page cannot make directly, tracks pending (not-yet-authorized) storage hosts in memory, and responds to popup actions.
 
 ### Key design decisions
 
 - **Auto-enabled sites**: `web.koodoreader.com` and `*.koodoreader.cn` are always active without user action.
-- **Forwarding blacklist**: Requests to `koodoreader.com` and `chatwoot.com` domains are never forwarded through the tunnel.
+- **Assist blacklist**: Requests to `koodoreader.com` and `chatwoot.com` domains are never routed through the assist path.
 - **Binary transfer**: Responses are Base64-encoded through the JSON message channel to safely carry binary data (e.g., ebook files).
 - **WebDAV auth**: URL credentials (user:password@host) are extracted and converted to `Authorization: Basic ...` headers.
 - **Popup** (`src/pages/popup/Popup.tsx`) — React UI for saving articles and granting host permissions for pending storage origins.

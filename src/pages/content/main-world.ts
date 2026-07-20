@@ -34,7 +34,7 @@ type FormEntry = {
 
 type BodyEncoding = "none" | "text" | "base64" | "formdata";
 
-type ForwardResponse = {
+type AssistResponse = {
   success: boolean;
   /** Always Base64-encoded by the background. */
   data: string;
@@ -131,7 +131,7 @@ async function serializeBody(
     return { bodyEncoding: "base64", body: btoa(binary) };
   }
 
-  // ReadableStream – not feasible to forward; fall back to native
+  // ReadableStream – not feasible to assist; fall back to native
   return { bodyEncoding: "none" };
 }
 
@@ -148,10 +148,10 @@ function siteCheckPassed(): boolean {
 
 // ─── postMessage Bridge ──────────────────────────────────────────────────────
 
-/** Send a forward request via postMessage and await the Base64 response. */
-function forwardRequest(
+/** Send an assist request via postMessage and await the Base64 response. */
+function assistRequest(
   payload: Record<string, unknown>,
-): Promise<ForwardResponse> {
+): Promise<AssistResponse> {
   return new Promise((resolve, reject) => {
     const id = ++_reqId;
 
@@ -166,11 +166,11 @@ function forwardRequest(
         return;
 
       window.removeEventListener("message", onMessage);
-      const res: ForwardResponse = event.data.payload;
+      const res: AssistResponse = event.data.payload;
       if (res.success) {
         resolve(res);
       } else {
-        const err = new TypeError(res.error ?? "Forward request failed");
+        const err = new TypeError(res.error ?? "Assist request failed");
         // Carry the background's fallback hint so the caller can retry via
         // the native fetch/XHR path when host permission is missing.
         (err as Error & { fallback?: "native" }).fallback = res.fallback;
@@ -186,13 +186,13 @@ function forwardRequest(
   });
 }
 
-// ─── Forward Blacklist ───────────────────────────────────────────────────────
+// ─── Assist Blacklist ────────────────────────────────────────────────────────
 
 /**
- * Domains (and their subdomains) whose requests should bypass the forward
+ * Domains (and their subdomains) whose requests should skip the assist
  * and use the native fetch / XHR directly.
  */
-const FORWARD_BLACKLIST = [
+const ASSIST_BLACKLIST = [
   "koodoreader.com",
   "koodoreader.cn",
   "960960.xyz",
@@ -212,7 +212,7 @@ const FORWARD_BLACKLIST = [
 function isBlacklisted(url: string): boolean {
   try {
     const hostname = new URL(url).hostname.toLowerCase();
-    return FORWARD_BLACKLIST.some(
+    return ASSIST_BLACKLIST.some(
       (domain) => hostname === domain || hostname.endsWith("." + domain),
     );
   } catch {
@@ -234,7 +234,7 @@ function initMainWorld(): void {
   window.fetch = async function (
     ...args: Parameters<typeof fetch>
   ): Promise<Response> {
-    // Only forward for auto-enabled or manually-enabled sites
+    // Only assist for auto-enabled or manually-enabled sites
     if (!siteCheckPassed()) return _originalFetch(...args);
     const input = args[0];
     const init: RequestInit = args[1] ?? {};
@@ -248,7 +248,7 @@ function initMainWorld(): void {
 
     if (!url.startsWith("http")) return _originalFetch(...args);
 
-    // Bypass forward for blacklisted domains
+    // Skip assist for blacklisted domains
     if (isBlacklisted(url)) return _originalFetch(...args);
 
     // Serialise request headers
@@ -287,8 +287,8 @@ function initMainWorld(): void {
     const { bodyEncoding, body, formEntries } = await serializeBody(rawBody);
 
     try {
-      const res = await forwardRequest({
-        type: "FORWARD_FETCH",
+      const res = await assistRequest({
+        type: "ASSIST_FETCH",
         url,
         method: effectiveMethod,
         headers: reqHeaders,
@@ -327,7 +327,7 @@ function initMainWorld(): void {
 
   const _OriginalXHR = window.XMLHttpRequest;
 
-  class ForwardedXMLHttpRequest extends _OriginalXHR {
+  class AssistedXMLHttpRequest extends _OriginalXHR {
     private _url = "";
     private _method = "GET";
     private _reqHeaders: Record<string, string> = {};
@@ -370,7 +370,7 @@ function initMainWorld(): void {
         return;
       }
 
-      // Bypass forward for blacklisted domains
+      // Skip assist for blacklisted domains
       if (isBlacklisted(url)) {
         super.send(body);
         return;
@@ -380,8 +380,8 @@ function initMainWorld(): void {
 
       serializeBody(body as BodyInit | null | undefined)
         .then((serialized) =>
-          forwardRequest({
-            type: "FORWARD_XHR",
+          assistRequest({
+            type: "ASSIST_XHR",
             url,
             method: this._method,
             headers: this._reqHeaders,
@@ -488,13 +488,13 @@ function initMainWorld(): void {
             this.onreadystatechange(new Event("readystatechange"));
           if (typeof this.onerror === "function")
             this.onerror(new ProgressEvent("error"));
-          console.error("[koodo] XHR forward failed, request not retried:", err);
+          console.error("[koodo] XHR assist failed, request not retried:", err);
         });
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).XMLHttpRequest = ForwardedXMLHttpRequest;
+  (window as any).XMLHttpRequest = AssistedXMLHttpRequest;
 }
 
 // ─── Startup ─────────────────────────────────────────────────────────────────

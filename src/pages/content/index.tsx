@@ -3,7 +3,7 @@
  *
  * Acts as a postMessage ↔ chrome.runtime.sendMessage bridge:
  *   - Listens for KOODO_REQ messages posted by main-world.ts (MAIN world)
- *   - Forwards them to background/index.ts via chrome.runtime.sendMessage
+ *   - Passes them to background/index.ts via chrome.runtime.sendMessage
  *   - Posts the response back to the page via window.postMessage (KOODO_RES)
  *
  *   - Pings (payload.type === "PING") are answered locally with a PONG so
@@ -32,8 +32,8 @@ function startBridge(): void {
 
     const { __id, payload } = event.data;
 
-    // Respond locally instead of forwarding — a presence probe must not
-    // depend on the MV3 service worker being alive.
+    // Respond locally instead of routing through the assist path — a presence
+    // probe must not depend on the MV3 service worker being alive.
     if (payload?.type === "PING") {
       window.postMessage(
         {

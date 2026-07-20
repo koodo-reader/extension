@@ -51,20 +51,20 @@
     "message": "出错了",
     "description": "通用错误标题"
   },
-  "forwardTitle": {
-    "message": "转发模式",
-    "description": "转发模式卡片标题"
+  "assistTitle": {
+    "message": "辅助模式",
+    "description": "辅助模式卡片标题"
   },
-  "forwardActive": {
-    "message": "网络转发已激活",
-    "description": "转发激活时的副标题"
+  "assistActive": {
+    "message": "辅助连接已启用",
+    "description": "辅助启用时的副标题"
   },
-  "forwardActiveHint": {
-    "message": "此 Koodo Reader 网页应用已激活网络转发",
-    "description": "转发模式页脚提示"
+  "assistActiveHint": {
+    "message": "此 Koodo Reader 网页应用已启用辅助连接",
+    "description": "辅助模式页脚提示"
   },
-  "forwardRunning": {
-    "message": "网络转发在此站点上自动运行",
+  "assistRunning": {
+    "message": "辅助连接在此站点上自动运行",
     "description": "Koodo Reader 网页应用显示的信息"
   },
   "pendingHostsTitle": {
@@ -72,7 +72,7 @@
     "description": "待授权域名卡片标题"
   },
   "pendingHostsHint": {
-    "message": "授权后扩展才能转发请求到这些存储域名",
+    "message": "授权后扩展才能辅助请求到这些存储域名",
     "description": "待授权域名卡片副标题"
   },
   "btnGrant": {

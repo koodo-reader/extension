@@ -3,7 +3,7 @@ refreshBadge();
 
 // ─── Pending Host Authorization ───────────────────────────────────────────────
 //
-// User-configured WebDAV/S3 hosts that the extension has been asked to forward
+// User-configured WebDAV/S3 hosts that the extension has been asked to assist
 // to but does not yet have host permission for. Held as normalized origins
 // (e.g. "https://nas.example.com:5005") in memory only — the list is cleared
 // whenever the service worker is evicted, which is fine: the next request to
@@ -155,11 +155,11 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return true;
   }
 
-  // Forward fetch/XHR (existing logic)
-  if (request.type !== "FORWARD_FETCH" && request.type !== "FORWARD_XHR")
+  // Assist fetch/XHR (existing logic)
+  if (request.type !== "ASSIST_FETCH" && request.type !== "ASSIST_XHR")
     return;
 
-  // Before forwarding, check that we hold host permission for the target
+  // Before assisting, check that we hold host permission for the target
   // origin. If not, record it as pending authorization and tell the main
   // world to fall back to the native fetch/XHR path — the service worker
   // fetch would be rejected anyway, and the page can still try directly
@@ -169,7 +169,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     .then(async (granted) => {
       if (granted) {
         try {
-          sendResponse(await executeForward(request));
+          sendResponse(await executeAssist(request));
         } catch (err: any) {
           sendResponse({ success: false, error: err.message });
         }
@@ -199,8 +199,8 @@ type FormEntry = {
   fileType?: string;
 };
 
-type ForwardMessage = {
-  type: "FORWARD_FETCH" | "FORWARD_XHR";
+type AssistMessage = {
+  type: "ASSIST_FETCH" | "ASSIST_XHR";
   url: string;
   method?: string;
   headers?: Record<string, string>;
@@ -215,7 +215,7 @@ type ForwardMessage = {
   body?: string | null;
   formEntries?: FormEntry[];
   withCredentials?: boolean;
-  /** Legacy: FORWARD_FETCH used to pass the whole RequestInit here. */
+  /** Legacy: ASSIST_FETCH used to pass the whole RequestInit here. */
   options?: RequestInit & { headers?: Record<string, string> };
 };
 
@@ -237,7 +237,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
  * fetch, which is the only way to get a Blob inside a Service Worker.
  */
 async function buildRequestBody(
-  msg: ForwardMessage,
+  msg: AssistMessage,
 ): Promise<BodyInit | null | undefined> {
   switch (msg.bodyEncoding) {
     case "none":
@@ -305,11 +305,11 @@ function extractCredentials(rawUrl: string): {
 }
 
 /**
- * Execute the forwarded request and return a serialisable result.
+ * Execute the assisted request and return a serialisable result.
  * The response body is always returned as Base64 so that binary files
  * (images, PDFs, ZIPs …) survive the JSON message channel intact.
  */
-async function executeForward(msg: ForwardMessage) {
+async function executeAssist(msg: AssistMessage) {
   const method =
     msg.method ?? (msg.options as RequestInit | undefined)?.method ?? "GET";
   const headers: Record<string, string> = {
@@ -319,7 +319,7 @@ async function executeForward(msg: ForwardMessage) {
 
   // The Fetch API forbids credentials embedded in URLs (throws TypeError).
   // Extract them and convert to an Authorization header so the service
-  // worker can forward WebDAV requests that use user:pass@host style URLs.
+  // worker can assist WebDAV requests that use user:pass@host style URLs.
   const { cleanUrl, authHeader } = extractCredentials(msg.url);
   if (authHeader && !headers["authorization"] && !headers["Authorization"]) {
     headers["Authorization"] = authHeader;

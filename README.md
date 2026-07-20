@@ -9,7 +9,7 @@
 ## Features
 
 - **Clip Web Articles** — Save any web article to your library for later reading with one click. Requires the [Koodo Reader desktop app](https://koodoreader.com) to be installed. Articles are saved as HTML files in your library.
-- **Bypass Web Limitations** — Due to restrictions with WebDAV and S3-compatible storage, you may be unable to sync or import books through these data sources in the browser. Install this extension to work around those limitations on the Koodo Reader web app.
+- **Assist Cloud Storage** — Due to browser restrictions on WebDAV and S3-compatible storage, you may be unable to sync or import books through these data sources directly in the browser. Install this extension to assist those connections on the Koodo Reader web app.
 
 ## Quick Start
 

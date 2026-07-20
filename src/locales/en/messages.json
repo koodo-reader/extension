@@ -51,20 +51,20 @@
     "message": "Something went wrong",
     "description": "Generic error title"
   },
-  "forwardTitle": {
-    "message": "Forward Mode",
-    "description": "Title for forward mode card"
+  "assistTitle": {
+    "message": "Assist Mode",
+    "description": "Title for assist mode card"
   },
-  "forwardActive": {
-    "message": "Network forward is active",
-    "description": "Subtitle when forward is active"
+  "assistActive": {
+    "message": "Connection assist is enabled",
+    "description": "Subtitle when assist is enabled"
   },
-  "forwardActiveHint": {
-    "message": "Network forward is active on this Koodo Reader web app",
-    "description": "Footer hint in forward mode"
+  "assistActiveHint": {
+    "message": "Connection assist is enabled on this Koodo Reader web app",
+    "description": "Footer hint in assist mode"
   },
-  "forwardRunning": {
-    "message": "Network forward runs automatically on this site",
+  "assistRunning": {
+    "message": "Connection assist runs automatically on this site",
     "description": "Message shown on a Koodo Reader web app"
   },
   "pendingHostsTitle": {
@@ -72,7 +72,7 @@
     "description": "Title for the pending host authorization card"
   },
   "pendingHostsHint": {
-    "message": "Grant access to forward requests to these storage hosts",
+    "message": "Grant access to assist requests to these storage hosts",
     "description": "Subtitle explaining the pending hosts card"
   },
   "btnGrant": {

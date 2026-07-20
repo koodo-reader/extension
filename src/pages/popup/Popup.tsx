@@ -15,7 +15,7 @@ type TabInfo = {
   url: string;
 };
 
-type PageMode = "forward" | "save";
+type PageMode = "assist" | "save";
 
 function getHostname(url: string): string {
   try {
@@ -293,7 +293,7 @@ export default function Popup() {
         return;
       }
 
-      setPageMode(hasAppVersion ? "forward" : "save");
+      setPageMode(hasAppVersion ? "assist" : "save");
       setLoading(false);
     });
   }, []);
@@ -350,10 +350,10 @@ export default function Popup() {
           "saveFooterHint",
           "Save this page to read in Koodo Reader desktop app",
         )
-      : pageMode === "forward"
+      : pageMode === "assist"
         ? t(
-            "forwardActiveHint",
-            "Network forward is active on this Koodo Reader web app",
+            "assistActiveHint",
+            "Connection assist is enabled on this Koodo Reader web app",
           )
         : null;
 
@@ -372,7 +372,7 @@ export default function Popup() {
               title={t("pendingHostsTitle", "Pending Authorization")}
               subtitle={t(
                 "pendingHostsHint",
-                "Grant access to forward requests to these storage hosts",
+                "Grant access to assist requests to these storage hosts",
               )}
             />
             <div className="space-y-2">
@@ -467,8 +467,8 @@ export default function Popup() {
                 : t("btnSave", "Save to Koodo Reader")}
             </PrimaryButton>
           </>
-        ) : pageMode === "forward" && tabInfo ? (
-          /* Forward mode — the page is a Koodo Reader web app, forward is active */
+        ) : pageMode === "assist" && tabInfo ? (
+          /* Assist mode — the page is a Koodo Reader web app, assist is enabled */
           <>
             <Card>
               <CardHeader
@@ -477,8 +477,8 @@ export default function Popup() {
                     <IconZap />
                   </IconBox>
                 }
-                title={t("forwardTitle", "Forward Mode")}
-                subtitle={t("forwardActive", "Network forward is active")}
+                title={t("assistTitle", "Assist Mode")}
+                subtitle={t("assistActive", "Connection assist is enabled")}
               />
               <MetaRow label={t("currentSite", "Current Site")}>
                 <span className="font-mono text-[11px] text-app-body break-all">
@@ -490,8 +490,8 @@ export default function Popup() {
               <IconCheck />
               <p className="text-xs text-app-body leading-relaxed">
                 {t(
-                  "forwardRunning",
-                  "Network forward runs automatically on this site",
+                  "assistRunning",
+                  "Connection assist runs automatically on this site",
                 )}
               </p>
             </Card>
