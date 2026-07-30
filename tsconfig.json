@@ -15,6 +15,7 @@
     "resolveJsonModule": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@src/*": ["src/*"],
@@ -29,5 +30,5 @@
     "vite.config.base.ts",
     "vite.config.chrome.ts",
     "vite.config.firefox.ts"
-  ],
+  ]
 }
