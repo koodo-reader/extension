@@ -499,30 +499,17 @@ function initMainWorld(): void {
 
 // ─── Startup ─────────────────────────────────────────────────────────────────
 //
-// This script runs at document_start, before the page's own JS has had a
-// chance to write the "appVersion" marker into localStorage.  So we poll for
-// it: once the Koodo Reader web app sets the marker, we install the fetch/XHR
-// interceptors.  If the marker never appears (this page isn't the web app),
-// we give up after the timeout and stay inert.
-
-const APP_VERSION_POLL_INTERVAL_MS = 50;
-const APP_VERSION_POLL_TIMEOUT_MS = 10_000;
-
-function startWhenAppReady(): void {
-  if (siteCheckPassed()) {
-    initMainWorld();
-    return;
-  }
-
-  const deadline = Date.now() + APP_VERSION_POLL_TIMEOUT_MS;
-  const timer = setInterval(() => {
-    if (siteCheckPassed()) {
-      clearInterval(timer);
-      initMainWorld();
-    } else if (Date.now() > deadline) {
-      clearInterval(timer);
-    }
-  }, APP_VERSION_POLL_INTERVAL_MS);
-}
-
-startWhenAppReady();
+// Install the interceptors SYNCHRONOUSLY at document_start, before any of the
+// page's own scripts run.  This is critical: Koodo Reader's bundle caches
+// `window.fetch` / `XMLHttpRequest` into module-level closures when it
+// initialises.  If we install even one tick later (the previous design polled
+// localStorage for the "appVersion" marker), every reference captured before
+// we ran points at the native originals and bypasses us for the whole page
+// load -> CORS preflight failures on WebDAV/S3 (e.g. PROPFIND /dav/...).
+//
+// Installing this early is safe because:
+//   - `matches` already restricts this script to *.koodoreader.com / *.cn;
+//   - each interceptor internally calls `siteCheckPassed()` and falls back to
+//     the native path until the web app sets its "appVersion" marker, so the
+//     pre-init window and non-app pages are left untouched.
+initMainWorld();
